@@ -36,6 +36,11 @@ const EN = {
   back: 'Back',
   noSteps: 'No steps yet',
 
+  // answering a permission request or a question in its row
+  allow: 'Allow',
+  deny: 'Deny',
+  send: 'Send',
+
   // settings view
   settings: 'Settings',
   autostart: 'Start with Windows',
@@ -43,6 +48,8 @@ const EN = {
   idleAfter: 'Idle after',
   idleAfterHint: 'Finished sessions then shrink to a slim row.',
   language: 'Language',
+  answerInWidget: 'Answer in the widget',
+  answerInWidgetHint: 'Answer permission prompts and questions right here. The dialog in VS Code keeps working.',
   notSaved: 'Not saved',
 };
 
@@ -78,12 +85,18 @@ const DE = {
   back: 'Zurück',
   noSteps: 'Noch keine Schritte',
 
+  allow: 'Erlauben',
+  deny: 'Ablehnen',
+  send: 'Senden',
+
   settings: 'Einstellungen',
   autostart: 'Mit Windows starten',
   topmost: 'Immer im Vordergrund',
   idleAfter: 'Session ruht nach',
   idleAfterHint: 'Fertige Sessions rutschen danach in die schmale Zeile.',
   language: 'Sprache',
+  answerInWidget: 'Im Widget antworten',
+  answerInWidgetHint: 'Freigaben und Fragen direkt hier beantworten. Der Dialog in VS Code bleibt nutzbar.',
   notSaved: 'Nicht gespeichert',
 };
 

@@ -7,8 +7,8 @@
     "vscodeUnread": true
   },
   "counts": {
-    "total": 17,
-    "prompt": 4,
+    "total": 18,
+    "prompt": 5,
     "working": 3,
     "waiting": 4,
     "idle": 6,
@@ -44,7 +44,21 @@
       "dismissed": false,
       "host": "wsl",
       "opensIn": "vscode",
-      "hostSessionId": null
+      "hostSessionId": null,
+      "requests": [
+        {
+          "id": "0b6f4c1e-2a7d-4e39-9c15-7f3a1d2e4b01",
+          "kind": "permission",
+          "via": "main",
+          "tool": "Bash",
+          "detail": "rm -rf scratchpad/php-upgrade/tmp && mkdir -p scratchpad/php-upgrade/tmp && cp -r wp-content/themes/vereinsblog scratchpad/php-upgrade/tmp/theme && php -l scratchpad/php-upgrade/tmp/theme/functions.php && vendor/bin/phpunit --testsuite upgrade --stop-on-failure",
+          "extras": [
+            "run_in_background: true"
+          ],
+          "questions": null,
+          "since": "2026-11-16T11:58:00.000Z"
+        }
+      ]
     },
     {
       "id": "3b2be2e2-6344-452b-8592-711b6d4b6060",
@@ -86,7 +100,147 @@
       "dismissed": false,
       "host": "wsl",
       "opensIn": "vscode",
-      "hostSessionId": null
+      "hostSessionId": null,
+      "requests": [
+        {
+          "id": "1c7a5d2f-3b8e-4f4a-8d26-8a4b2e3f5c02",
+          "kind": "question",
+          "via": "main",
+          "tool": "AskUserQuestion",
+          "detail": null,
+          "extras": [],
+          "questions": [
+            {
+              "question": "Soll „Mehr Angaben“ das Rezept erst speichern oder einen ungespeicherten Entwurf öffnen?",
+              "header": "Entwurf",
+              "multiSelect": false,
+              "options": [
+                {
+                  "label": "Erst speichern, dann öffnen",
+                  "description": "Das Rezept steht sofort in der Liste; „Mehr Angaben“ bearbeitet es."
+                },
+                {
+                  "label": "Ungespeicherter Entwurf",
+                  "description": "Nichts wird gespeichert, bis das Formular abgeschickt ist."
+                },
+                {
+                  "label": "Später entscheiden",
+                  "description": "Der Knopf bleibt vorerst ohne Funktion."
+                }
+              ]
+            }
+          ],
+          "since": "2026-11-16T11:54:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "7c3e9a14-5d2b-4f68-a1c7-4e8b0d9f2a63",
+      "pid": 31210,
+      "cwd": "/home/dev/wetterstation",
+      "project": "wetterstation",
+      "title": "Auswertung der Messwerte",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "prompt",
+      "stateSince": "2026-11-16T11:57:00.000Z",
+      "stateSource": "transcript",
+      "ask": {
+        "kind": "question",
+        "certain": true,
+        "via": "main",
+        "tool": "AskUserQuestion",
+        "summary": "Welcher Zeitraum soll ausgewertet werden?",
+        "questions": [
+          {
+            "question": "Welcher Zeitraum soll ausgewertet werden?",
+            "header": "Zeitraum",
+            "options": [
+              "Letzte Woche",
+              "Letzter Monat",
+              "Ganzes Jahr"
+            ],
+            "multiSelect": false
+          },
+          {
+            "question": "Welche Messwerte sollen in das Diagramm?",
+            "header": "Messwerte",
+            "options": [
+              "Temperatur",
+              "Luftfeuchte",
+              "Luftdruck",
+              "Wind"
+            ],
+            "multiSelect": true
+          }
+        ]
+      },
+      "current": {
+        "tool": "AskUserQuestion",
+        "label": "AskUserQuestion",
+        "since": "2026-11-16T11:57:00.000Z"
+      },
+      "canOpen": true,
+      "unread": false,
+      "dismissed": false,
+      "host": "wsl",
+      "opensIn": "vscode",
+      "hostSessionId": null,
+      "requests": [
+        {
+          "id": "2d8b6e3a-4c9f-4a5b-9e37-9b5c3f4a6d03",
+          "kind": "question",
+          "via": "main",
+          "tool": "AskUserQuestion",
+          "detail": null,
+          "extras": [],
+          "questions": [
+            {
+              "question": "Welcher Zeitraum soll ausgewertet werden?",
+              "header": "Zeitraum",
+              "multiSelect": false,
+              "options": [
+                {
+                  "label": "Letzte Woche",
+                  "description": "Sieben Tage, stündliche Werte."
+                },
+                {
+                  "label": "Letzter Monat",
+                  "description": "Tagesmittel."
+                },
+                {
+                  "label": "Ganzes Jahr",
+                  "description": "Wochenmittel."
+                }
+              ]
+            },
+            {
+              "question": "Welche Messwerte sollen in das Diagramm?",
+              "header": "Messwerte",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "Temperatur",
+                  "description": ""
+                },
+                {
+                  "label": "Luftfeuchte",
+                  "description": ""
+                },
+                {
+                  "label": "Luftdruck",
+                  "description": ""
+                },
+                {
+                  "label": "Wind",
+                  "description": "Mittel und Böen."
+                }
+              ]
+            }
+          ],
+          "since": "2026-11-16T11:57:00.000Z"
+        }
+      ]
     },
     {
       "id": "6f1fa906-d7fd-4277-8e98-d3ba89972f46",

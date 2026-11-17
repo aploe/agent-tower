@@ -73,23 +73,35 @@ export async function getSteps(id) {
   return res.json();
 }
 
-/**
- * POST open | dismiss | restore. Always resolves with an object: the daemon's answer, or
- * { ok: false, reason } when it could not be reached or answered with something else.
- */
-export async function post(id, action) {
+/** POST to a session's action with a JSON body. Always resolves with an object: the daemon's
+ *  answer, or { ok: false, reason } when it could not be reached or answered with something else. */
+async function postJson(id, action, body) {
   try {
     const res = await fetch(`/api/sessions/${encodeURIComponent(id)}/${action}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: '{}',
+      body: JSON.stringify(body),
     });
-    const body = await res.json();
-    if (body && typeof body === 'object') return body;
+    const answer = await res.json();
+    if (answer && typeof answer === 'object') return answer;
   } catch {
     // falls through
   }
   return { ok: false, reason: S.offline };
+}
+
+/** POST open | dismiss | restore. */
+export function post(id, action) {
+  return postJson(id, action, {});
+}
+
+/**
+ * The user's answer to a held permission request of that session:
+ * { requestId, behavior: 'allow' | 'deny', choices? } (choices: option indices per question).
+ * Resolves with { ok: true }, or { ok: false, reason }.
+ */
+export function answer(sessionId, body) {
+  return postJson(sessionId, 'answer', body);
 }
 
 /** The settings answer of the daemon. Throws when it does not answer with it (an older daemon: 404). */
