@@ -240,6 +240,15 @@ export function createApp(cfg, deps = {}) {
       req.resume();
       return json(res, pre.status, { ok: false, reason: pre.reason });
     }
+    // Claude Code can give up on the call at any moment (hook timeout, session ended, "No" in
+    // its own dialog), also while the session is still being looked up below. Remember it from
+    // the start: a call nobody waits for must not become a request with buttons.
+    let gone = false;
+    let requestId = null;
+    res.on('close', () => {
+      gone = true;
+      if (requestId !== null) requests.drop(requestId); // a no-op once it was answered
+    });
     try {
       const text = await readBody(req, MAX_HOOK_BODY);
       if (text === null) return noDecision(res);
@@ -258,22 +267,20 @@ export function createApp(cfg, deps = {}) {
         session = find(await getState()) ?? find(await getState({ fresh: true }));
       }
       const verdict = eligibility({ payload, session, enabled: answering(), heldCount: requests.size });
+      if (gone) return undefined; // closed during the lookup: nothing to hold, nobody to answer
       if (!verdict.hold) return noDecision(res);
 
-      const requestId = requests.hold(verdict.request, (decision) => {
+      requestId = requests.hold(verdict.request, (decision) => {
         if (decision === null) return noDecision(res);
         res.writeHead(200, { 'content-type': 'application/json' });
         return res.end(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PermissionRequest', decision } }));
       });
-      // Claude Code gave up on the call (hook timeout, session ended, "No" in its own dialog).
-      // After an answer of ours this is a no-op: the request is already gone.
-      res.on('close', () => requests.drop(requestId));
       invalidate();
       watchRequests();
       return undefined;
     } catch (err) {
       logLine(`hook call passed through: ${err?.message ?? err}`);
-      if (!res.headersSent) noDecision(res);
+      if (!res.headersSent && !gone) noDecision(res);
       return undefined;
     }
   }

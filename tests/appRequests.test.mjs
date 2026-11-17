@@ -23,6 +23,9 @@ const NO_DECISION = { status: 200, type: null, text: '' };
 const bash = (id = S1, command = 'rm -rf build/tmp') =>
   ({ hook_event_name: 'PermissionRequest', session_id: id, tool_name: 'Bash', tool_input: { command } });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** The daemon's log lines with the seconds blanked: how long a request was held depends on
+ *  how busy the machine is. */
+const logged = (t) => t.lines.map((line) => line.replace(/after \d+ s/, 'after N s'));
 /** 'pending' when the promise has not settled after ms, else its value. */
 const within = (promise, ms) => Promise.race([promise, sleep(ms).then(() => 'pending')]);
 async function until(check, ms = 2000) {
@@ -180,7 +183,7 @@ test('a question of a run that shows no dialog is handed back, although its row 
       tool_input: { questions: [{ question: 'Where to?', options: [{ label: 'A' }, { label: 'B' }] }] } };
     assert.deepEqual(await within(t.hook(question), 2000), NO_DECISION);
     assert.deepEqual((await t.rowOf(S1)).requests, []);
-    assert.deepEqual(t.lines.map((l) => l.replace(/after \d+ s/, 'after N s')), ['request: AskUserQuestion E4 after N s (session 123e4567)']);
+    assert.deepEqual(logged(t), ['request: AskUserQuestion E4 after N s (session 123e4567)']);
   } finally { await t.stop(); }
 });
 
@@ -234,8 +237,26 @@ test('E5: switching the setting off releases everything and holds nothing new', 
     assert.deepEqual(await within(t.hook(bash()), 1000), NO_DECISION);
     assert.deepEqual((await t.rowOf(S1)).requests, []);
     // One line per ended request, and nothing of the command in it.
-    assert.deepEqual(t.lines.filter((l) => l.startsWith('request:')), ['request: Bash E5 after 0 s (session 123e4567)']);
+    assert.deepEqual(logged(t), ['request: Bash E5 after N s (session 123e4567)']);
     assert.equal(t.lines.some((l) => l.includes('rm -rf')), false);
+  } finally { await t.stop(); }
+});
+
+test('a call that Claude Code closes while the daemon still looks up its session is not held', async () => {
+  let slow = 0;
+  const t = await start({ collect: async (snapshot) => { await sleep(slow); return snapshot(); } });
+  try {
+    await t.state();
+    await sleep(60); // past pollMs: the lookup has to collect again
+    slow = 300;
+    const call = t.hook(bash());
+    await sleep(100);
+    call.request.destroy(); // gone while the daemon is still collecting
+    await sleep(350);
+    slow = 0;
+    // Nobody waits for an answer any more: no buttons for it, and nothing to log.
+    assert.deepEqual((await t.rowOf(S1)).requests, []);
+    assert.deepEqual(t.lines, []);
   } finally { await t.stop(); }
 });
 
@@ -346,7 +367,7 @@ test('allow answers the held hook call byte for byte', async () => {
       text: '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}',
     });
     assert.deepEqual((await t.rowOf(S1)).requests, []);
-    assert.deepEqual(t.lines, ['request: Bash E1 allow after 0 s (session 123e4567)']);
+    assert.deepEqual(logged(t), ['request: Bash E1 allow after N s (session 123e4567)']);
   } finally { await t.stop(); }
 });
 
