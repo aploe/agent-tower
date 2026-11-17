@@ -34,6 +34,20 @@ export function checkPost({ knownIds, ...request }) {
   return { ok: true };
 }
 
+const isJson = (headers) => (headers['content-type'] ?? '').split(';')[0].trim().toLowerCase() === 'application/json';
+
+/**
+ * The guard for a hook call. Its caller is Claude Code, not a page: loopback, JSON, and no
+ * Origin header at all. A browser names its origin on every POST, so any Origin (even the
+ * daemon's own) means the call does not come from the hook.
+ */
+export function checkHookRequest({ remoteAddress, headers = {} }) {
+  if (!LOOPBACK.has(remoteAddress ?? '')) return refuse(403, 'Local only');
+  if (headers.origin !== undefined) return refuse(403, 'Foreign origin');
+  if (!isJson(headers)) return refuse(415, 'Content-type must be application/json');
+  return { ok: true };
+}
+
 /** DNS-rebinding guard for every request: the Host must be our own loopback origin. */
 export function checkHost({ headers = {}, port }) {
   const host = headers.host;

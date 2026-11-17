@@ -27,8 +27,8 @@ server.listen(cfg.port, cfg.host, () => {
 
 for (const sig of ['SIGTERM', 'SIGINT']) {
   process.on(sig, () => {
-    server.closeAllConnections();
-    server.close(() => process.exit(0));
+    // Held permission requests are handed back to Claude Code before the connections close.
+    server.shutdown(() => process.exit(0));
     setTimeout(() => process.exit(0), 1000).unref();
   });
 }

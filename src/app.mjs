@@ -8,9 +8,10 @@ import { loadRegistry } from './sources/registry.mjs';
 import { openSession, UUID } from './vscode.mjs';
 import { openDesktopSession, windowsPathOf, windowsStartTimes } from './windows.mjs';
 import { groupOf, updateDismissed } from './dismissed.mjs';
-import { checkHost, checkPost, checkPostOrigin, checkPostRequest } from './guards.mjs';
+import { checkHookRequest, checkHost, checkPost, checkPostOrigin, checkPostRequest } from './guards.mjs';
 import { defaultsOf, limitsOf, loadSettings, updateSettings, validatePatch } from './settings.mjs';
 import { say, setLanguage as setMessageLanguage } from './messages.mjs';
+import { createRequests, eligibility } from './requests.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_PUBLIC = path.join(ROOT, 'public');
@@ -44,6 +45,18 @@ function decodeId(raw) {
 
 // Settings POST body: a handful of keys; anything bigger is not from the widget.
 const MAX_BODY = 1024;
+// A hook call carries the tool's whole input (a Write call: the file). Beyond this it is not
+// read into memory and not offered for answering.
+const MAX_HOOK_BODY = 1024 * 1024;
+
+// How long a shutdown waits between answering the held hook calls and closing the connections.
+const SHUTDOWN_FLUSH_MS = 100;
+
+/** "No decision" for a hook call: Claude Code carries on as it does without the hook. */
+function noDecision(res) {
+  res.writeHead(200);
+  res.end();
+}
 
 const withoutStamp = (snap) => JSON.stringify({ ...snap, generatedAt: null });
 
@@ -80,11 +93,29 @@ export function createApp(cfg, deps = {}) {
   let inflight = null;
   let generation = 0; // bumped by invalidate(); a collect that started earlier is not cached
 
+  // --- held permission requests ---------------------------------------------------------
+  // Hook calls that wait for an answer in the widget (src/requests.mjs). Every ending is one
+  // log line without any text of the request, and makes the next snapshot a new one.
+  const logLine = d.log ?? ((line) => console.log(line));
+  const requests = createRequests({
+    graceMs: d.graceMs,
+    log: ({ ending, behavior, tool, heldMs, session }) => {
+      invalidate();
+      logLine(`request: ${tool} ${ending}${behavior ? ` ${behavior}` : ''} after ${Math.round(heldMs / 1000)} s (session ${session})`);
+    },
+  });
+  const answering = () => ({ ...defaults, ...overrides }).answerInWidget === true;
+  const withRequests = (snap) => ({
+    ...snap,
+    sessions: snap.sessions.map((s) => ({ ...s, requests: requests.listFor(s.id) })),
+  });
+
   function getState({ fresh = false } = {}) {
     if (!fresh && cache.snap && Date.now() - cache.at < cfg.pollMs) return Promise.resolve(cache.snap);
     if (inflight && !fresh) return inflight;
     const gen = generation;
-    const p = Promise.resolve(d.collect(effective)).then((snap) => {
+    const p = Promise.resolve(d.collect(effective)).then((collected) => {
+      const snap = withRequests(collected);
       if (gen === generation) cache = { at: Date.now(), snap };
       return snap;
     });
@@ -96,6 +127,22 @@ export function createApp(cfg, deps = {}) {
     generation++;
     cache = { at: 0, snap: null };
     inflight = null;
+  }
+
+  // While a request is held, look at the sessions every pollMs, with or without a page
+  // listening: a request whose session is gone or no longer asks was answered elsewhere.
+  let watch = null;
+  function watchRequests() {
+    if (watch || requests.size === 0) return;
+    watch = setTimeout(async () => {
+      watch = null;
+      try {
+        requests.reconcile(await getState({ fresh: true }));
+      } catch (err) {
+        logLine(`held requests: collect failed: ${err?.message ?? err}`); // retried next tick
+      }
+      watchRequests();
+    }, cfg.pollMs);
   }
 
   // --- event stream -----------------------------------------------------------------
@@ -169,20 +216,64 @@ export function createApp(cfg, deps = {}) {
     res.end(body);
   }
 
-  /** Reads the body up to MAX_BODY bytes; null (after the 413 is sent) when it is larger. */
-  async function readBody(req, res) {
-    const chunks = [];
+  /** The body as text, or null when it is larger than `limit`. A larger body is read to its
+   *  end without being kept: leaving the loop early would reset the connection under a caller
+   *  that is still sending, and it would never see the answer. */
+  async function readBody(req, limit) {
+    let chunks = [];
     let size = 0;
     for await (const chunk of req) {
       size += chunk.length;
-      if (size > MAX_BODY) {
-        req.resume(); // drain without keeping it; the answer goes out right away
-        json(res, 413, { ok: false, reason: 'Request too large' });
-        return null;
-      }
-      chunks.push(chunk);
+      if (size > limit) chunks = [];
+      else chunks.push(chunk);
     }
-    return Buffer.concat(chunks).toString('utf8');
+    return size > limit ? null : Buffer.concat(chunks).toString('utf8');
+  }
+
+  /** POST /api/hook/permission-request: Claude Code asks whether a tool call may run. Held for
+   *  the widget when eligible; everything else, and every error, is "no decision". */
+  async function handleHook(req, res) {
+    const pre = checkHookRequest({ remoteAddress: req.socket.remoteAddress, headers: req.headers });
+    if (!pre.ok) {
+      req.resume();
+      return json(res, pre.status, { ok: false, reason: pre.reason });
+    }
+    try {
+      const text = await readBody(req, MAX_HOOK_BODY);
+      if (text === null) return noDecision(res);
+      let payload;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        return noDecision(res);
+      }
+      // The session's row: the cached snapshot when it knows the id, else one fresh look
+      // (a session that started a moment ago).
+      const id = payload?.session_id;
+      let session = null;
+      if (answering() && typeof id === 'string') {
+        const find = (snap) => snap.sessions.find((s) => s.id === id) ?? null;
+        session = find(await getState()) ?? find(await getState({ fresh: true }));
+      }
+      const verdict = eligibility({ payload, session, enabled: answering(), heldCount: requests.size });
+      if (!verdict.hold) return noDecision(res);
+
+      const requestId = requests.hold(verdict.request, (decision) => {
+        if (decision === null) return noDecision(res);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return res.end(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PermissionRequest', decision } }));
+      });
+      // Claude Code gave up on the call (hook timeout, session ended, "No" in its own dialog).
+      // After an answer of ours this is a no-op: the request is already gone.
+      res.on('close', () => requests.drop(requestId));
+      invalidate();
+      watchRequests();
+      return undefined;
+    } catch (err) {
+      logLine(`hook call passed through: ${err?.message ?? err}`);
+      if (!res.headersSent) noDecision(res);
+      return undefined;
+    }
   }
 
   async function handleSettingsPost(req, res) {
@@ -195,8 +286,8 @@ export function createApp(cfg, deps = {}) {
       req.resume();
       return json(res, pre.status, { ok: false, reason: pre.reason });
     }
-    const text = await readBody(req, res);
-    if (text === null) return undefined;
+    const text = await readBody(req, MAX_BODY);
+    if (text === null) return json(res, 413, { ok: false, reason: 'Request too large' });
     let body;
     try {
       body = JSON.parse(text);
@@ -206,6 +297,7 @@ export function createApp(cfg, deps = {}) {
     const verdict = validatePatch(body);
     if (!verdict.ok) return json(res, 400, { ok: false, reason: verdict.reason });
     useOverrides(await updateSettings(cfg, defaults, verdict.patch));
+    if (!answering()) requests.endAll('E5'); // switched off: hand every held request back
     invalidate(); // the event stream picks up the new snapshot on its next tick
     return json(res, 200, settingsBody());
   }
@@ -315,6 +407,7 @@ export function createApp(cfg, deps = {}) {
       }
       if (req.method === 'POST') {
         if (pathname === '/api/settings') return await handleSettingsPost(req, res);
+        if (pathname === '/api/hook/permission-request') return await handleHook(req, res);
         const m = pathname.match(/^\/api\/sessions\/([^/]+)\/(open|dismiss|restore)$/);
         if (m) {
           const id = decodeId(m[1]);
@@ -335,6 +428,19 @@ export function createApp(cfg, deps = {}) {
   server.on('close', () => {
     clearTimeout(loop);
     loop = null;
+    clearTimeout(watch);
+    watch = null;
   });
+  /** Every held hook call gets "no decision" instead of a reset. */
+  server.endHeldRequests = () => requests.endAll('E7');
+  /** Stops the server. Held hook calls are answered first; the connections are closed a
+   *  moment later, so that those answers still leave. */
+  server.shutdown = (done = () => {}) => {
+    server.endHeldRequests();
+    setTimeout(() => {
+      server.closeAllConnections();
+      server.close(() => done());
+    }, SHUTDOWN_FLUSH_MS);
+  };
   return server;
 }
