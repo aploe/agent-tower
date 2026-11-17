@@ -2,8 +2,9 @@
 // Starts an own daemon on --port 0, shoots the widget page, stops that daemon by PID.
 //
 // Usage: node scripts/shot.mjs <out.png> [--fixture <name>] [--detail <sessionId>] [--collapsed] [--settings]
-//                              [--lang de] [--width 400] [--height 900] [--eval "<expression>"]
-// --lang works with --fixture only; live mode follows the daemon's language setting.
+//                              [--lang de] [--offline] [--width 400] [--height 900] [--eval "<expression>"]
+// --lang and --offline work with --fixture only; live mode follows the daemon. --offline shows
+// the fixture as the page shows its last list while the daemon is unreachable.
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -13,7 +14,7 @@ import { findChrome, loadPlaywright } from './lib/browser.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
-  const opts = { out: null, fixture: null, detail: null, collapsed: false, settings: false, lang: null, width: 400, height: 900, evalExpr: null };
+  const opts = { out: null, fixture: null, detail: null, collapsed: false, settings: false, lang: null, offline: false, width: 400, height: 900, evalExpr: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => {
@@ -25,13 +26,14 @@ function parseArgs(argv) {
     else if (a === '--collapsed') opts.collapsed = true;
     else if (a === '--settings') opts.settings = true;
     else if (a === '--lang') opts.lang = next();
+    else if (a === '--offline') opts.offline = true;
     else if (a === '--width') opts.width = Number(next());
     else if (a === '--height') opts.height = Number(next());
     else if (a === '--eval') opts.evalExpr = next();
     else if (!a.startsWith('--') && !opts.out) opts.out = a;
     else throw new Error(`unknown argument: ${a}`);
   }
-  if (!opts.out) throw new Error('usage: node scripts/shot.mjs <out.png> [--fixture <name>] [--detail <id>] [--collapsed] [--settings] [--lang de] [--width n] [--height n] [--eval "<expr>"]');
+  if (!opts.out) throw new Error('usage: node scripts/shot.mjs <out.png> [--fixture <name>] [--detail <id>] [--collapsed] [--settings] [--lang de] [--offline] [--width n] [--height n] [--eval "<expr>"]');
   return opts;
 }
 
@@ -80,6 +82,7 @@ async function main() {
     if (opts.collapsed) query.set('collapsed', '1');
     if (opts.settings) query.set('settings', '1');
     if (opts.lang) query.set('lang', opts.lang);
+    if (opts.offline) query.set('offline', '1');
     const qs = query.toString();
     const url = `http://127.0.0.1:${port}/${qs ? '?' + qs : ''}`;
 

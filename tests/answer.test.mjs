@@ -19,6 +19,18 @@ test('requestsOf: a row without requests has none', () => {
   assert.deepEqual(requestsOf({ requests: [{ id: 'r1' }] }), [{ id: 'r1' }]);
 });
 
+test('canAnswer: not while the daemon is unreachable, not after the answer was sent', () => {
+  const { canAnswer } = answerLogic;
+  const ui = (over = {}) => ({ online: true, sending: new Set(), ...over });
+  assert.equal(canAnswer(ui(), 'r1'), true);
+  // The list on screen is then the last one the daemon sent: whether the request is still
+  // held is not known, so nothing is offered.
+  assert.equal(canAnswer(ui({ online: false }), 'r1'), false);
+  assert.equal(canAnswer(ui({ sending: new Set(['r1']) }), 'r1'), false);
+  assert.equal(canAnswer(ui({ sending: new Set(['r2']) }), 'r1'), true);
+  assert.equal(canAnswer({}, 'r1'), true); // a page state without these fields (fixtures)
+});
+
 test('toggleChoice: single choice replaces, multiple choice toggles and stays sorted', () => {
   assert.deepEqual(toggleChoice(qs, undefined, 0, 2), [[2], []]);
   assert.deepEqual(toggleChoice(qs, [[2], []], 0, 1), [[1], []]);

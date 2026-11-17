@@ -1,7 +1,8 @@
 // Widget page. Live mode follows the daemon's event stream. Fixture mode (?fixture=<name>)
 // renders public/fixtures/<name>.json with its generatedAt as "now", so screenshots stay the
 // same over time; its actions do nothing. In fixture mode ?lang=de shows the page in German
-// (live mode follows the daemon's setting).
+// (live mode follows the daemon's setting) and ?offline=1 shows it as while the daemon is
+// unreachable.
 import { renderDetail, renderHeader, renderList, renderSettings } from './modules/render.mjs';
 import { assignHues } from './modules/figure.mjs';
 import { answer as sendAnswer, getSettings, getSteps, post, setSettings, subscribe } from './modules/api.mjs';
@@ -26,7 +27,8 @@ const ui = {
   selectedId: params.get('detail'),
   collapsed: params.get('collapsed') === '1',
   showHidden: false,
-  online: true,
+  online: !(fixture && params.get('offline') === '1'), // live mode: the event stream says; ?offline=1 shows a fixture as the stale list
+
   canHide: bridge.inShell || Boolean(fixture), // a browser tab has nothing to hide; the mock shows the shell's look
   reasons: new Map(),
   hues: new Map(), // session id → figure colour, held while the session is listed

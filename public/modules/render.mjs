@@ -3,7 +3,7 @@
 import { LANGUAGE_NAMES, S } from '../strings.mjs';
 import { duration, relTime, stateLine, stateMark, thirdLine, unreadable } from './format.mjs';
 import { hueIndex } from './figure.mjs';
-import { choicesComplete, requestsOf } from './answer.mjs';
+import { canAnswer, choicesComplete, requestsOf } from './answer.mjs';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -193,7 +193,7 @@ function requestFrame(request, ...children) {
 
 /** The tool and everything it is about to do, in full, above Allow and Deny. */
 function permissionBlock(session, request, handlers, ui) {
-  const busy = ui.sending?.has(request.id) ?? false;
+  const busy = !canAnswer(ui, request.id);
   const send = (behavior) => handlers.answer(session.id, request.id, { requestId: request.id, behavior });
   return requestFrame(request,
     h('div', { class: 'request-detail' }, h('span', { class: 'tool' }, `${request.tool}: `), request.detail ?? ''),
@@ -212,7 +212,7 @@ function permissionBlock(session, request, handlers, ui) {
 function questionBlock(session, request, handlers, ui) {
   const questions = request.questions ?? [];
   const choices = ui.choices?.get(request.id);
-  const busy = ui.sending?.has(request.id) ?? false;
+  const busy = !canAnswer(ui, request.id);
   const option = (q, k) => (o, i) => {
     const on = choices?.[k]?.includes(i) ?? false;
     const row = h('button', {

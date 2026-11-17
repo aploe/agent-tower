@@ -10,6 +10,15 @@ export function requestsOf(session) {
 }
 
 /**
+ * Whether the controls of a request take an answer right now. Not while the daemon is
+ * unreachable: the list on screen is then the last one it sent, and whether the request is
+ * still held is not known. Not after an answer went out, until the request has left the list.
+ */
+export function canAnswer(ui, requestId) {
+  return ui?.online !== false && !(ui?.sending?.has(requestId) ?? false);
+}
+
+/**
  * The selection after a click on option `index` of question `q`. `choices` holds one array
  * of option indices per question (undefined: nothing picked yet). A single choice takes the
  * clicked option; a multiple choice adds or removes it and stays sorted.
