@@ -308,11 +308,15 @@ button {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  /* a header without spaces must not push the page wider than the window */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .question {
   margin: 7px 0 8px;
   font-size: 13.5px;
   font-weight: 700;
+  overflow-wrap: anywhere; /* a path or URL in the question wraps instead of being cut */
 }
 /* Stage 1 answers in VS Code only (design 8.2): the options are plain lines, nothing that
    looks like a control. */
@@ -329,6 +333,8 @@ button {
 .options li {
   display: flex;
   gap: 7px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .options li::before {
   content: '–';
