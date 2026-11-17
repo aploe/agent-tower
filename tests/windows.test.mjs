@@ -80,14 +80,14 @@ test('openDesktopSession hands the claude:// link to wslview', async () => {
 test('openDesktopSession refuses anything but local_<id> and runs nothing', async () => {
   for (const id of ['last', 'local_', 'local_a b', 'local_x&y=1', `local_${'a'.repeat(65)}`, null, undefined]) {
     await assert.rejects(openDesktopSession({ hostSessionId: id }, { run: async () => { throw new Error('ran'); } }),
-      { message: 'keine gültige Desktop-Sitzungs-ID' }, String(id));
+      { message: 'Not a valid desktop session id' }, String(id));
   }
 });
 
 test('openDesktopSession without wslview says so', async () => {
   await assert.rejects(openDesktopSession({ hostSessionId: 'local_a1' },
     { run: async () => { throw Object.assign(new Error('spawn wslview ENOENT'), { code: 'ENOENT' }); } }),
-    { message: 'wslview fehlt (Paket wslu)' });
+    { message: 'wslview missing (package wslu)' });
 });
 
 test('windowsPathOf turns a /mnt drive path into a Windows path', () => {

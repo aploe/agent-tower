@@ -18,18 +18,18 @@ public sealed class Tray : IDisposable
 
     public Tray(Action toggle, bool topmostOn, Action<bool> setTopmost, Action restartDaemon, Action quit)
     {
-        _topmost = new ToolStripMenuItem("Immer im Vordergrund") { Checked = topmostOn, CheckOnClick = true };
+        _topmost = new ToolStripMenuItem("Always on top") { Checked = topmostOn, CheckOnClick = true };
         _topmost.CheckedChanged += (_, _) =>
         {
             if (!_settingFromCode) setTopmost(_topmost.Checked);
         };
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add("Anzeigen/Verbergen", null, (_, _) => toggle());
+        menu.Items.Add("Show/Hide", null, (_, _) => toggle());
         menu.Items.Add(_topmost);
-        menu.Items.Add("Dienst neu starten", null, (_, _) => restartDaemon());
+        menu.Items.Add("Restart daemon", null, (_, _) => restartDaemon());
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Beenden", null, (_, _) => quit());
+        menu.Items.Add("Quit", null, (_, _) => quit());
 
         _icon = new NotifyIcon { Icon = _normal, Text = "Agent Tower", ContextMenuStrip = menu, Visible = true };
         _icon.MouseClick += (_, e) =>
@@ -49,7 +49,7 @@ public sealed class Tray : IDisposable
     public void SetAttention(int count)
     {
         _icon.Icon = count > 0 ? _attention : _normal;
-        _icon.Text = count > 0 ? $"Agent Tower · {count} {(count == 1 ? "fragt" : "fragen")}" : "Agent Tower";
+        _icon.Text = count > 0 ? $"Agent Tower · {count} asking" : "Agent Tower";
     }
 
     public void Dispose()

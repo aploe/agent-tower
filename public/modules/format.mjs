@@ -6,7 +6,7 @@ const MIN = 60 * SEC;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-/** "jetzt", "40 s", "12 min", "6 h", "3 d"; unknown or unparseable → "—". */
+/** "now", "40 s", "12 min", "6 h", "3 d"; unknown or unparseable → "—". */
 export function relTime(sinceIso, nowMs) {
   if (typeof sinceIso !== 'string') return S.unknown;
   const t = Date.parse(sinceIso);

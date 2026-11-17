@@ -20,7 +20,7 @@ A small always-on-top Windows window that lists the live Claude Code sessions in
 
 - **Never touch the running sessions.** Stage 1 installs no hooks and changes nothing under `~/.claude/`. The daemon writes only inside its own state folder `${XDG_STATE_HOME:-~/.local/state}/agent-tower/`: the hidden-rows file and the user's settings (relaxed by André on 2026-11-17). Nothing under `/mnt/c` is written either; the Windows `.claude` folder is read only.
 - **Nothing here ends a session or a process that it did not start itself.** "Cross off" hides a row.
-- **Unknown is shown as unknown.** No guessed value presented as fact; an unproven prompt reads "fragt vermutlich".
+- **Unknown is shown as unknown.** No guessed value presented as fact; an unproven prompt reads "probably asking".
 - **Agent Colony is a read-only source.** Code is copied from its commit `7da77bb` with a header line naming the origin. Do not edit anything in that repo from here.
 - **No runtime dependencies in the daemon, no build step for the page.** A new package needs a reason in the commit message.
 - **Everything listens on `127.0.0.1` only.**

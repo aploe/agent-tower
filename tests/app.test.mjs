@@ -190,11 +190,11 @@ test('POST open passes cwd from the snapshot, never from the body', async () => 
 });
 
 test('POST open answers 200 with ok false and the reason when the opener throws', async () => {
-  const t = await start({ openSession: async () => { throw new Error('Fenster nicht gefunden'); } });
+  const t = await start({ openSession: async () => { throw new Error('Window not found'); } });
   try {
     const res = await t.post(`/api/sessions/${A}/open`);
     assert.equal(res.status, 200);
-    assert.deepEqual(await res.json(), { ok: false, reason: 'Fenster nicht gefunden' });
+    assert.deepEqual(await res.json(), { ok: false, reason: 'Window not found' });
   } finally { await t.stop(); }
 });
 
@@ -254,7 +254,7 @@ test('POST open of a row without a jump is refused before any opener', async () 
   try {
     const res = await t.post(`/api/sessions/${B}/open`);
     assert.equal(res.status, 200);
-    assert.deepEqual(await res.json(), { ok: false, reason: 'für diese Session gibt es keinen Sprung' });
+    assert.deepEqual(await res.json(), { ok: false, reason: 'This session cannot be opened from here' });
     assert.equal(t.calls.open.length, 0);
     assert.equal(t.calls.desktop.length, 0);
     assert.equal(t.calls.registry, 0);
@@ -265,7 +265,7 @@ test('POST open refuses when the registry is unreadable', async () => {
   const t = await start({ loadRegistry: async () => null });
   try {
     const res = await t.post(`/api/sessions/${A}/open`);
-    assert.deepEqual(await res.json(), { ok: false, reason: 'Registry nicht lesbar' });
+    assert.deepEqual(await res.json(), { ok: false, reason: 'Registry not readable' });
     assert.equal(t.calls.open.length, 0);
   } finally { await t.stop(); }
 });
@@ -474,11 +474,11 @@ test('POST open of a desktop row calls only the desktop opener, with the snapsho
 });
 
 test('POST open of a desktop row answers ok false with the reason when the desktop opener throws', async () => {
-  const t = await start({ openDesktop: async () => { throw new Error('wslview fehlt (Paket wslu)'); } });
+  const t = await start({ openDesktop: async () => { throw new Error('wslview missing (package wslu)'); } });
   try {
     const res = await t.post(`/api/sessions/${D}/open`);
     assert.equal(res.status, 200);
-    assert.deepEqual(await res.json(), { ok: false, reason: 'wslview fehlt (Paket wslu)' });
+    assert.deepEqual(await res.json(), { ok: false, reason: 'wslview missing (package wslu)' });
   } finally { await t.stop(); }
 });
 

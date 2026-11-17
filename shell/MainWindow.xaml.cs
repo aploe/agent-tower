@@ -67,7 +67,7 @@ public partial class MainWindow : Window
         Loaded += async (_, _) => await StartWebViewAsync();
         Closing += (_, e) =>
         {
-            // Alt+F4 hides like the header's X; only "Beenden" in the tray menu ends the app.
+            // Alt+F4 hides like the header's X; only "Quit" in the tray menu ends the app.
             if (_allowClose) return;
             e.Cancel = true;
             Hide();
@@ -299,7 +299,7 @@ public partial class MainWindow : Window
         catch (Exception e)
         {
             MessageBox.Show(
-                "Die WebView2-Laufzeit von Microsoft Edge ließ sich nicht starten.\n\n" + e.Message,
+                "The Microsoft Edge WebView2 runtime could not be started.\n\n" + e.Message,
                 "Agent Tower", MessageBoxButton.OK, MessageBoxImage.Error);
             Close();
             return;

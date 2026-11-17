@@ -169,7 +169,7 @@ export function createApp(cfg, deps = {}) {
       size += chunk.length;
       if (size > MAX_BODY) {
         req.resume(); // drain without keeping it; the answer goes out right away
-        json(res, 413, { ok: false, reason: 'Anfrage zu groß' });
+        json(res, 413, { ok: false, reason: 'Request too large' });
         return null;
       }
       chunks.push(chunk);
@@ -193,7 +193,7 @@ export function createApp(cfg, deps = {}) {
     try {
       body = JSON.parse(text);
     } catch {
-      return json(res, 400, { ok: false, reason: 'kein gültiges JSON' });
+      return json(res, 400, { ok: false, reason: 'Not valid JSON' });
     }
     const verdict = validatePatch(body);
     if (!verdict.ok) return json(res, 400, { ok: false, reason: verdict.reason });
@@ -223,7 +223,7 @@ export function createApp(cfg, deps = {}) {
       // Server-side: a live CLI session must never be "restored" in the extension (it would
       // start twice), and a row without a proven jump gets none. The page hides the arrow, but
       // the guard belongs here.
-      const noJump = { ok: false, reason: 'für diese Session gibt es keinen Sprung' };
+      const noJump = { ok: false, reason: 'This session cannot be opened from here' };
       if (!session.canOpen) return json(res, 200, noJump);
       try {
         if (session.opensIn === 'desktop') {
@@ -239,7 +239,7 @@ export function createApp(cfg, deps = {}) {
           ? await d.loadRegistry(cfg, { claudeDir: cfg.windowsClaudeDir, origin: 'windows', startTimes: windowsStartTimes })
           : await d.loadRegistry(cfg);
         // Without the registry the twin check (two folders, same name) cannot run: refuse.
-        if (!registry) return json(res, 200, { ok: false, reason: 'Registry nicht lesbar' });
+        if (!registry) return json(res, 200, { ok: false, reason: 'Registry not readable' });
         await d.openSession({
           cwd: session.cwd,
           sessionId: id,
@@ -269,7 +269,7 @@ export function createApp(cfg, deps = {}) {
     try {
       if (!checkHost({ headers: req.headers, port: req.socket.localPort })) {
         req.resume();
-        return json(res, 403, { ok: false, reason: 'fremder Host' });
+        return json(res, 403, { ok: false, reason: 'Foreign host' });
       }
       await settingsReady;
       const { pathname } = new URL(req.url, 'http://localhost');
@@ -296,10 +296,10 @@ export function createApp(cfg, deps = {}) {
         const steps = pathname.match(/^\/api\/sessions\/([^/]+)\/steps$/);
         if (steps) {
           const id = decodeId(steps[1]);
-          if (id === null) return json(res, 400, { ok: false, reason: 'keine gültige Session-ID' });
+          if (id === null) return json(res, 400, { ok: false, reason: 'Not a valid session id' });
           const snap = await getState();
           if (!UUID.test(id) || !snap.sessions.some((s) => s.id === id)) {
-            return json(res, 404, { ok: false, reason: 'unbekannte Session' });
+            return json(res, 404, { ok: false, reason: 'Unknown session' });
           }
           return json(res, 200, await d.stepsFor(effective, id));
         }
@@ -313,7 +313,7 @@ export function createApp(cfg, deps = {}) {
           const id = decodeId(m[1]);
           if (id === null) {
             req.resume();
-            return json(res, 400, { ok: false, reason: 'keine gültige Session-ID' });
+            return json(res, 400, { ok: false, reason: 'Not a valid session id' });
           }
           return await handlePost(req, res, id, m[2]);
         }

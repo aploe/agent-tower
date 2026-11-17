@@ -10,14 +10,14 @@ const LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
 
 if (!LOOPBACK.has(cfg.host)) {
   console.warn(
-    `Warnung: host ist ${cfg.host}. Jeder, der diese Adresse erreicht, liest /api/state ` +
-      `(Ordner, Titel, Fragen der Sessions). Mit der Vorgabe 127.0.0.1 lauscht der Daemon nur lokal.`,
+    `Warning: host is ${cfg.host}. Anyone who reaches this address can read /api/state ` +
+      `(folders, titles, questions of the sessions). With the default 127.0.0.1 the daemon listens locally only.`,
   );
 }
 
 const server = createApp(cfg);
 server.on('error', (err) => {
-  console.error(`Fehler: ${err.message}`);
+  console.error(`Error: ${err.message}`);
   process.exit(1);
 });
 // Print the real port: with `--port 0` it is only known after binding.

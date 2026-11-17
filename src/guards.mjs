@@ -10,10 +10,10 @@ export function checkPostOrigin({ remoteAddress, headers = {}, port }) {
   if (!LOOPBACK.has(remoteAddress ?? '')) return refuse(403, 'nur lokal');
   const origin = headers.origin;
   if (origin !== `http://127.0.0.1:${port}` && origin !== `http://localhost:${port}`) {
-    return refuse(403, 'fremde Herkunft');
+    return refuse(403, 'Foreign origin');
   }
   if ((headers['content-type'] ?? '').split(';')[0].trim().toLowerCase() !== 'application/json') {
-    return refuse(415, 'content-type muss application/json sein');
+    return refuse(415, 'Content-type must be application/json');
   }
   return { ok: true };
 }
@@ -22,14 +22,14 @@ export function checkPostOrigin({ remoteAddress, headers = {}, port }) {
 export function checkPostRequest(request) {
   const pre = checkPostOrigin(request);
   if (!pre.ok) return pre;
-  if (!UUID.test(request.sessionId ?? '')) return refuse(400, 'keine gültige Session-ID');
+  if (!UUID.test(request.sessionId ?? '')) return refuse(400, 'Not a valid session id');
   return { ok: true };
 }
 
 export function checkPost({ knownIds, ...request }) {
   const pre = checkPostRequest(request);
   if (!pre.ok) return pre;
-  if (!knownIds.has(request.sessionId)) return refuse(404, 'unbekannte Session');
+  if (!knownIds.has(request.sessionId)) return refuse(404, 'Unknown session');
   return { ok: true };
 }
 

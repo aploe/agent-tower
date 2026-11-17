@@ -86,12 +86,12 @@ const LINK_TIMEOUT_MS = 20_000;
  *  (F31 d). The id is checked here even though the snapshot already checked it: this is the
  *  line that builds the link. */
 export async function openDesktopSession({ hostSessionId }, deps = { run: promisify(execFile) }) {
-  if (!DESKTOP_ID.test(hostSessionId ?? '')) throw new Error('keine gültige Desktop-Sitzungs-ID');
+  if (!DESKTOP_ID.test(hostSessionId ?? '')) throw new Error('Not a valid desktop session id');
   const url = `claude://code/continue?session=${hostSessionId}`;
   try {
     await deps.run('wslview', [url], { timeout: LINK_TIMEOUT_MS });
   } catch (err) {
-    if (err.code === 'ENOENT') throw new Error('wslview fehlt (Paket wslu)');
+    if (err.code === 'ENOENT') throw new Error('wslview missing (package wslu)');
     throw err;
   }
   return { url };

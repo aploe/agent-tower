@@ -36,15 +36,15 @@ export async function loadSettings(cfg) {
 /** Own keys only (Object.keys), so a `__proto__` entry is an unknown key, not a lookup. */
 export function validatePatch(body) {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
-    return { ok: false, reason: 'Einstellungen müssen ein JSON-Objekt sein' };
+    return { ok: false, reason: 'Settings must be a JSON object' };
   }
   const patch = {};
   for (const key of Object.keys(body)) {
-    if (!Object.hasOwn(KEYS, key)) return { ok: false, reason: `unbekannte Einstellung: ${key}` };
+    if (!Object.hasOwn(KEYS, key)) return { ok: false, reason: `Unknown setting: ${key}` };
     const value = body[key];
     if (value !== null && !isValue(key, value)) {
       const { min, max } = KEYS[key];
-      return { ok: false, reason: `${key} muss eine ganze Zahl von ${min} bis ${max} sein` };
+      return { ok: false, reason: `${key} must be a whole number from ${min} to ${max}` };
     }
     patch[key] = value;
   }

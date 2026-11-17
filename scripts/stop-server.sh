@@ -14,14 +14,14 @@ cd "$(dirname "$0")/.."
 
 NODE_BIN="$HOME/.nvm/versions/node/$(cat .nvmrc)/bin"
 [ -d "$NODE_BIN" ] && export PATH="$NODE_BIN:$PATH"
-command -v node > /dev/null || { echo "Node nicht gefunden. nvm install $(cat .nvmrc)"; exit 1; }
+command -v node > /dev/null || { echo "Node not found. nvm install $(cat .nvmrc)"; exit 1; }
 
 PORT="${TOWER_PORT:-$(node -e 'import("./src/config.mjs").then(m=>m.loadConfig({root:process.cwd(),argv:[]})).then(c=>console.log(c.port))')}"
 
 HEALTH="$(curl -sf --max-time 2 "http://127.0.0.1:$PORT/api/health" 2> /dev/null || true)"
 LISTENER="$(ss -ltnpH "sport = :$PORT" 2> /dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2 || true)"
 if [ -z "$HEALTH" ] && [ -z "$LISTENER" ]; then
-  echo "Auf Port $PORT läuft kein Server."
+  echo "No server runs on port $PORT."
   exit 0
 fi
 
@@ -34,14 +34,14 @@ case "$HEALTH" in
     ;;
 esac
 if [ -z "$PID" ]; then
-  echo "Auf Port $PORT lauscht ${LISTENER:+PID $LISTENER, aber das ist }kein Agent-Tower-Daemon. Nichts beendet."
+  echo "Port $PORT is held by ${LISTENER:+PID $LISTENER, which is }not an Agent Tower daemon. Nothing stopped."
   exit 1
 fi
 
 kill "$PID" 2> /dev/null || true
 for _ in $(seq 20); do
   if ! kill -0 "$PID" 2> /dev/null; then
-    echo "Agent Tower auf Port $PORT beendet (PID $PID)."
+    echo "Agent Tower on port $PORT stopped (PID $PID)."
     exit 0
   fi
   sleep 0.25
@@ -49,7 +49,7 @@ done
 kill -9 "$PID" 2> /dev/null || true
 sleep 0.25
 if kill -0 "$PID" 2> /dev/null; then
-  echo "PID $PID läuft noch, auch nach kill -9."
+  echo "PID $PID still runs, even after kill -9."
   exit 1
 fi
-echo "Agent Tower auf Port $PORT hart beendet (PID $PID)."
+echo "Agent Tower on port $PORT killed (PID $PID)."

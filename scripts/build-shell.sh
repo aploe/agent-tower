@@ -10,13 +10,13 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DOTNET="/mnt/c/Program Files/dotnet/dotnet.exe"
-[ -x "$DOTNET" ] || { echo "dotnet.exe nicht gefunden: $DOTNET" >&2; exit 1; }
+[ -x "$DOTNET" ] || { echo "dotnet.exe not found: $DOTNET" >&2; exit 1; }
 
 # cmd.exe cannot start in a \\wsl.localhost folder, so it is run from C:\.
 win_env() { (cd /mnt/c && cmd.exe /c "echo %$1%" 2>/dev/null | tr -d '\r\n'); }
 LOCALAPPDATA_WIN="$(win_env LOCALAPPDATA)"
 APPDATA_WIN="$(win_env APPDATA)"
-[ -n "$LOCALAPPDATA_WIN" ] && [ -n "$APPDATA_WIN" ] || { echo "%LOCALAPPDATA% oder %APPDATA% nicht lesbar" >&2; exit 1; }
+[ -n "$LOCALAPPDATA_WIN" ] && [ -n "$APPDATA_WIN" ] || { echo "%LOCALAPPDATA% or %APPDATA% not readable" >&2; exit 1; }
 DATA_WIN="${LOCALAPPDATA_WIN}\\AgentTower"
 APP_WIN="${DATA_WIN}\\app"
 EXE_WIN="${APP_WIN}\\AgentTower.exe"
@@ -27,7 +27,7 @@ fi
 
 # A running app keeps its files open; publishing over them fails after ten retries.
 if (cd /mnt/c && tasklist.exe /FI "IMAGENAME eq AgentTower.exe" /NH 2>/dev/null | grep -qi "AgentTower.exe"); then
-  echo "Agent Tower läuft noch. Erst beenden (Tray-Symbol, Beenden), dann erneut bauen." >&2
+  echo "Agent Tower is still running. Quit it first (tray icon, Quit), then build again." >&2
   exit 1
 fi
 

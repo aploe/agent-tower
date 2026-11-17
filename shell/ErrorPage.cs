@@ -31,20 +31,20 @@ public static class ErrorPage
     /// <summary>Shown after the daemon did not answer for 20 s.</summary>
     public static string Html(string command) => Page($"""
         <h1>Agent Tower</h1>
-        <p>Der Dienst in WSL antwortet nicht.</p>
+        <p>The daemon in WSL does not answer.</p>
         <code>{WebUtility.HtmlEncode(command)}</code>
-        <button id="retry" type="button">Erneut versuchen</button>
+        <button id="retry" type="button">Try again</button>
         """);
 
     /// <summary>Shown while the daemon is being started.</summary>
     public static string Starting() => Page("""
         <h1>Agent Tower</h1>
-        <p style="margin: 0">Der Dienst in WSL wird gestartet …</p>
+        <p style="margin: 0">Starting the daemon in WSL …</p>
         """);
 
     private static string Page(string body) => $"""
         <!doctype html>
-        <html lang="de">
+        <html lang="en">
         <head><meta charset="utf-8"><title>Agent Tower</title><style>{Style}</style></head>
         <body>
         {body}

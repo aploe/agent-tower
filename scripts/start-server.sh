@@ -19,7 +19,7 @@ cd "$(dirname "$0")/.."
 
 NODE_BIN="$HOME/.nvm/versions/node/$(cat .nvmrc)/bin"
 [ -d "$NODE_BIN" ] && export PATH="$NODE_BIN:$PATH"
-command -v node > /dev/null || { echo "Node nicht gefunden. nvm install $(cat .nvmrc)"; exit 1; }
+command -v node > /dev/null || { echo "Node not found. nvm install $(cat .nvmrc)"; exit 1; }
 
 # A daemon started through wsl.exe may lack XDG_RUNTIME_DIR; Colony's hook files and VS Code's
 # IPC sockets live there.
@@ -53,8 +53,8 @@ if [ -n "$OLD_PID" ]; then
     sleep 0.25
   done
 elif [ -n "$(listener_pid)" ]; then
-  echo "Port $PORT ist belegt von PID $(listener_pid), und das ist kein Agent-Tower-Daemon. Nichts beendet."
-  echo "Anderer Port: TOWER_PORT=4190 $0"
+  echo "Port $PORT is taken by PID $(listener_pid), which is not an Agent Tower daemon. Nothing stopped."
+  echo "Other port: TOWER_PORT=4190 $0"
   exit 1
 fi
 
@@ -73,6 +73,6 @@ for _ in $(seq 20); do
   sleep 0.3
 done
 
-echo "Daemon antwortet nicht. Log:"
+echo "Daemon does not answer. Log:"
 cat "$LOG"
 exit 1

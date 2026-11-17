@@ -47,7 +47,7 @@ test('zwei Fenster gleichen Namens: lieber gar nichts', () => {
     { id: 1, title: 'a - production [WSL: Ubuntu] - Visual Studio Code' },
     { id: 2, title: 'b - production [WSL: Ubuntu] - Visual Studio Code' },
   ];
-  assert.throws(() => pickWindow('/c/deployments/production', 'Ubuntu', list, []), /2 Fenster/);
+  assert.throws(() => pickWindow('/c/deployments/production', 'Ubuntu', list, []), /2 windows/);
 });
 
 test('ein Treffer, aber der Name ist auf der Karte doppelt: lieber gar nichts', () => {
@@ -58,7 +58,7 @@ test('ein Treffer, aber der Name ist auf der Karte doppelt: lieber gar nichts', 
         '/c/deployments/production',
         '/c/deployments/shared/production',
       ]),
-    /so heisst auch/,
+    /which also fits/,
   );
 });
 
@@ -135,25 +135,25 @@ test('orderSockets: newest first', () => {
 
 test('invalid session id: no run at all', async () => {
   const { deps, calls } = fake({ sockets: [{ path: SOCK_NEW, mtimeMs: 2 }], byWindows: { [SOCK_NEW]: [] } });
-  await assert.rejects(openSession({ ...args, sessionId: 'nope' }, deps), /keine gültige Session-ID/);
+  await assert.rejects(openSession({ ...args, sessionId: 'nope' }, deps), /Not a valid session id/);
   assert.equal(calls.length, 0);
 });
 
 test('missing distro: throws before any run', async () => {
   const { deps, calls } = fake({ sockets: [{ path: SOCK_NEW, mtimeMs: 2 }] });
-  await assert.rejects(openSession({ ...args, distro: null }, deps), /keine WSL-Distro bekannt \(config\.wslDistro\)/);
+  await assert.rejects(openSession({ ...args, distro: null }, deps), /No WSL distro known \(config\.wslDistro\)/);
   assert.equal(calls.length, 0);
 });
 
 test('no socket answers: VS Code nicht erreichbar', async () => {
   const { deps, calls } = fake({ sockets: [{ path: SOCK_NEW, mtimeMs: 2 }, { path: SOCK_OLD, mtimeMs: 1 }] });
-  await assert.rejects(openSession(args, deps), /VS Code nicht erreichbar/);
+  await assert.rejects(openSession(args, deps), /VS Code not reachable/);
   assert.equal(calls.some((c) => c.file === 'wslview'), false);
 });
 
 test('no socket files at all: VS Code nicht erreichbar', async () => {
   const { deps } = fake({ sockets: [] });
-  await assert.rejects(openSession(args, deps), /VS Code nicht erreichbar/);
+  await assert.rejects(openSession(args, deps), /VS Code not reachable/);
 });
 
 test('a socket that lists no window line counts as dead', async () => {
@@ -213,7 +213,7 @@ test('no matching window: refuses and never runs code <cwd>', async () => {
   });
   await assert.rejects(
     openSession(args, deps),
-    /Fenster nicht gefunden: der Ordner ist in keinem VS-Code-Fenster offen/,
+    /Window not found: no VS Code window has the folder open/,
   );
   assert.equal(calls.some((c) => c.args[0] === args.cwd), false);
   assert.equal(calls.some((c) => c.file === 'wslview'), false);
@@ -229,7 +229,7 @@ test('ambiguous windows: the pickWindow error passes through, nothing is opened'
       ],
     },
   });
-  await assert.rejects(openSession(args, deps), /2 Fenster/);
+  await assert.rejects(openSession(args, deps), /2 windows/);
   assert.equal(calls.some((c) => c.args[0] === args.cwd || c.file === 'wslview'), false);
 });
 
@@ -240,7 +240,7 @@ test('twin folder: the pickWindow error passes through', async () => {
   });
   await assert.rejects(
     openSession({ ...args, knownCwds: [args.cwd, '/other/agent-tower'] }, deps),
-    /so heisst auch/,
+    /which also fits/,
   );
   assert.equal(calls.some((c) => c.file === 'wslview'), false);
 });
@@ -270,7 +270,7 @@ test('wslview missing: reports the package', async () => {
     byWindows: { [SOCK_NEW]: [{ id: 7, title: WIN_TITLE }] },
     wslviewError: err,
   });
-  await assert.rejects(openSession(args, deps), /wslview fehlt \(Paket wslu\)/);
+  await assert.rejects(openSession(args, deps), /wslview missing \(package wslu\)/);
 });
 
 // ---- VS Code on Windows (spec §11, F32) ----
@@ -296,7 +296,7 @@ test('a home-folder session goes to the one Windows window that shows no known f
 
 test('two Windows windows without a known folder: refusal, not a guess', () => {
   const list = [...WIN_LIST, { id: 9, title: 'Fotos - Visual Studio Code' }];
-  assert.throws(() => pickWindow(HOME, null, list, [HOME, 'C:\\Users\\sam\\notes'], 'windows', HOME), /2 Fenster ohne Ordner/);
+  assert.throws(() => pickWindow(HOME, null, list, [HOME, 'C:\\Users\\sam\\notes'], 'windows', HOME), /2 windows without a folder/);
 });
 
 test('the folderless rule is only for the home folder', () => {
@@ -322,14 +322,14 @@ test('openSession on Windows sends only the link with the window id: no folder s
 
 test('openSession on Windows: no window with the folder means a refusal and nothing but the listing', async () => {
   const { deps, calls } = fake({ sockets: [{ path: SOCK_NEW, mtimeMs: 2 }], byWindows: { [SOCK_NEW]: WIN_LIST } });
-  await assert.rejects(openSession({ ...winArgs, cwd: 'C:\\Users\\sam\\fotos' }, deps), /Fenster nicht gefunden/);
+  await assert.rejects(openSession({ ...winArgs, cwd: 'C:\\Users\\sam\\fotos' }, deps), /Window not found/);
   assert.deepEqual(calls.map((c) => c.args[0]), ['-s']);
 });
 
 test('review fix: a Windows window titled only "Visual Studio Code" or with a suffix counts as folderless too', () => {
   const known = [HOME, 'C:\\Users\\sam\\notes'];
   const bare = [{ id: 6, title: 'Visual Studio Code' }, { id: 7, title: 'Fotos - Visual Studio Code' }];
-  assert.throws(() => pickWindow(HOME, null, bare, known, 'windows', HOME), /2 Fenster ohne Ordner/);
+  assert.throws(() => pickWindow(HOME, null, bare, known, 'windows', HOME), /2 windows without a folder/);
   const admin = [{ id: 6, title: 'Notizen - Visual Studio Code [Administrator]' }, { id: 7, title: 'Fotos - Visual Studio Code' }];
-  assert.throws(() => pickWindow(HOME, null, admin, known, 'windows', HOME), /2 Fenster ohne Ordner/);
+  assert.throws(() => pickWindow(HOME, null, admin, known, 'windows', HOME), /2 windows without a folder/);
 });
