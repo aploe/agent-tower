@@ -243,17 +243,32 @@ test('E5: switching the setting off releases everything and holds nothing new', 
 });
 
 test('a call that Claude Code closes while the daemon still looks up its session is not held', async () => {
-  let slow = 0;
-  const t = await start({ collect: async (snapshot) => { await sleep(slow); return snapshot(); } });
+  // No fixed waits: the lookup hangs in a collect that the test lets go on, so the order
+  // "looking up, closed, lookup done" does not depend on how busy the machine is.
+  let gate = null; // while set, collect waits for it
+  let collects = 0;
+  const t = await start({
+    collect: async (snapshot) => {
+      collects++;
+      if (gate) await gate.promise;
+      return snapshot();
+    },
+  });
   try {
     await t.state();
     await sleep(60); // past pollMs: the lookup has to collect again
-    slow = 300;
+    let open;
+    gate = { promise: new Promise((resolve) => { open = resolve; }) };
+    const before = collects;
     const call = t.hook(bash());
-    await sleep(100);
-    call.request.destroy(); // gone while the daemon is still collecting
-    await sleep(350);
-    slow = 0;
+    await until(() => collects > before); // the daemon is looking the session up
+    call.request.destroy(); // Claude Code gives up meanwhile
+    // One round trip to the daemon: by the time it has answered, it has seen the closed call too.
+    await fetch(`${t.base}/api/health`);
+    await sleep(20);
+    gate = null;
+    open();
+    await sleep(50);
     // Nobody waits for an answer any more: no buttons for it, and nothing to log.
     assert.deepEqual((await t.rowOf(S1)).requests, []);
     assert.deepEqual(t.lines, []);
