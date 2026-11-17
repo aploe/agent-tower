@@ -31,6 +31,7 @@
   --pill: oklch(0.37 0.004 286);
   --pill-hover: oklch(0.42 0.004 286);
   --card-hover: oklch(0.285 0.004 286);
+  --tip: oklch(0.39 0.004 286);
   --line: rgb(255 255 255 / 0.08);
 
   /* text */
@@ -589,7 +590,35 @@ button {
 .choice.is-on { background: var(--accent); color: var(--on-accent); font-weight: 800; }
 .choice:disabled { opacity: 0.45; cursor: default; }
 
+/* Own tooltips (tooltip.mjs): the highest layer, so the lightest surface. Fades in briefly,
+   closes at once; moving on to the next one within a moment skips the fade. */
+.tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10;
+  max-width: min(340px, calc(100vw - 12px));
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--tip);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.4);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  pointer-events: none;
+  opacity: 0;
+}
+.tooltip.is-on { opacity: 1; transition: opacity 120ms ease-out; }
+.tooltip.is-warm { transition: none; }
+.tooltip.is-mono { font-family: var(--mono); font-size: 11.5px; }
+
 @media (prefers-reduced-motion: reduce) {
+  .tooltip.is-on { transition: none; }
   .switch .knob { animation: none !important; }
   .figure.is-working .float,
   .figure.is-working .shadow,

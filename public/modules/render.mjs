@@ -17,7 +17,7 @@ function append(el, children) {
 function h(tag, opts = {}, ...children) {
   const el = document.createElement(tag);
   if (opts.class) el.className = opts.class;
-  if (opts.tip) el.title = opts.tip;
+  if (opts.tip) el.dataset.tip = opts.tip; // shown by tooltip.mjs, not as a browser tooltip
   if (opts.label) el.setAttribute('aria-label', opts.label);
   if (opts.style) for (const [k, v] of Object.entries(opts.style)) el.style.setProperty(k, v);
   if (opts.on) for (const [ev, fn] of Object.entries(opts.on)) el.addEventListener(ev, fn);
