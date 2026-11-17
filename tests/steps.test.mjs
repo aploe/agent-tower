@@ -85,3 +85,52 @@ test('terminal caps: command 200, lastLine 160; no Bash call gives null', () => 
   const pending = buildSteps([call(0, 'Bash', { command: 'ls' }, { status: 'running' })]);
   assert.deepEqual(pending.terminal, { command: 'ls', lastLine: null });
 });
+
+// ---------- held permission requests ----------
+
+import * as steps from '../src/steps.mjs';
+const { requestDetail, requestQuestions } = steps;
+
+test('requestDetail: Bash shows the command and every other input except description', () => {
+  assert.deepEqual(
+    requestDetail('Bash', { command: 'rm -rf build/tmp', description: 'Remove temp', run_in_background: true, timeout: 600000 }),
+    { detail: 'rm -rf build/tmp', extras: ['run_in_background: true', 'timeout: 600000'] });
+  assert.deepEqual(requestDetail('Bash', { command: 'ls', dangerouslyDisableSandbox: true }).extras, ['dangerouslyDisableSandbox: true']);
+});
+
+test('requestDetail: file tools show the path only, WebFetch the url plus its prompt, others the input as JSON', () => {
+  assert.deepEqual(requestDetail('Write', { file_path: '/work/alpha/notes.md', content: 'x'.repeat(9000) }), { detail: '/work/alpha/notes.md', extras: [] });
+  assert.deepEqual(requestDetail('Edit', { file_path: '/work/alpha/a.js', old_string: 'a', new_string: 'b' }), { detail: '/work/alpha/a.js', extras: [] });
+  assert.deepEqual(requestDetail('WebFetch', { url: 'https://example.com/a', prompt: 'summarize' }), { detail: 'https://example.com/a', extras: ['prompt: "summarize"'] });
+  assert.deepEqual(requestDetail('mcp__demo__send', { to: 'x', n: 1 }), { detail: '{"to":"x","n":1}', extras: [] });
+});
+
+test('requestDetail: null when the main field is missing or the text is longer than 4000 characters', () => {
+  for (const [tool, input] of [['Bash', {}], ['Bash', { command: '' }], ['Bash', null], ['Write', { content: 'x' }], ['WebFetch', { url: 7 }]]) {
+    assert.equal(requestDetail(tool, input), null);
+  }
+  assert.equal(steps.MAX_DETAIL, 4000);
+  assert.equal(requestDetail('Bash', { command: 'x'.repeat(4000) }).detail.length, 4000);
+  assert.equal(requestDetail('Bash', { command: 'x'.repeat(4001) }), null);
+  assert.equal(requestDetail('Bash', { command: 'x'.repeat(3995), timeout: 600000 }), null); // 3995 + "timeout: 600000" (15)
+});
+
+test('requestQuestions: one to four questions with label and description', () => {
+  const input = { questions: [
+    { question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Red', description: 'warm' }, { label: 'Green' }] },
+    { question: 'Which sides?', multiSelect: true, options: [{ label: 'Rice', description: '' }, { label: 'Salad', description: 'fresh' }] },
+  ] };
+  assert.deepEqual(requestQuestions(input), [
+    { question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Red', description: 'warm' }, { label: 'Green', description: '' }] },
+    { question: 'Which sides?', header: '', multiSelect: true, options: [{ label: 'Rice', description: '' }, { label: 'Salad', description: 'fresh' }] },
+  ]);
+});
+
+test('requestQuestions: null for anything that cannot be answered by index', () => {
+  const q = (over) => ({ question: 'Q?', options: [{ label: 'A' }, { label: 'B' }], ...over });
+  for (const input of [null, {}, { questions: [] }, { questions: [q(), q({ question: 'Q2' }), q({ question: 'Q3' }), q({ question: 'Q4' }), q({ question: 'Q5' })] },
+    { questions: [q({ options: [{ label: 'A' }] })] }, { questions: [q({ options: ['A', 'B'] })] },
+    { questions: [q({ options: [{ label: 'A' }, { label: 'A' }] })] }, { questions: [q(), q()] }, { questions: [q({ question: 7 })] }]) {
+    assert.equal(requestQuestions(input), null);
+  }
+});

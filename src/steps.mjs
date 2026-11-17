@@ -95,6 +95,82 @@ export function questionsOf(input) {
   return out;
 }
 
+// ---------- held permission requests ----------
+// What the widget shows above its answer buttons. Nothing here is shortened: a request whose
+// text does not fit is not offered for answering at all (null).
+
+export const MAX_DETAIL = 4000;
+
+/** The field that names what a tool is about to do, and whether its other inputs are listed. */
+const DETAIL_FIELD = {
+  Bash: { main: 'command', listOthers: true, skip: ['description'] },
+  WebFetch: { main: 'url', listOthers: true, skip: [] },
+  Write: { main: 'file_path', listOthers: false },
+  Edit: { main: 'file_path', listOthers: false },
+  NotebookEdit: { main: 'file_path', listOthers: false },
+};
+
+/**
+ * { detail, extras } for a permission request, or null when it cannot be shown in full.
+ * extras lists the call's other inputs as "key: <JSON>" lines: a call can need permission
+ * because of one of them (leaving the sandbox), so they must be visible. File tools show the
+ * path only; their content fields are left out on purpose.
+ */
+export function requestDetail(tool, input) {
+  if (!isObj(input)) return null;
+  const spec = DETAIL_FIELD[tool];
+  let detail;
+  let extras = [];
+  if (spec) {
+    detail = str(input[spec.main]);
+    if (detail === null) return null;
+    if (spec.listOthers) {
+      extras = Object.keys(input)
+        .filter((key) => key !== spec.main && !spec.skip.includes(key))
+        .map((key) => `${key}: ${JSON.stringify(input[key])}`);
+    }
+  } else {
+    try {
+      detail = JSON.stringify(input);
+    } catch {
+      return null;
+    }
+  }
+  const length = extras.reduce((sum, line) => sum + line.length, detail.length);
+  return length > MAX_DETAIL ? null : { detail, extras };
+}
+
+/**
+ * The questions of an AskUserQuestion request in the shape the widget answers by index, or
+ * null when that is not possible: 1 to 4 questions, each with at least two options that carry
+ * a label, question texts unique (the answer is keyed by them), labels unique per question.
+ */
+export function requestQuestions(input) {
+  if (!isObj(input) || !Array.isArray(input.questions)) return null;
+  if (input.questions.length < 1 || input.questions.length > 4) return null;
+  const out = [];
+  const texts = new Set();
+  for (const q of input.questions) {
+    if (!isObj(q) || typeof q.question !== 'string' || texts.has(q.question)) return null;
+    texts.add(q.question);
+    if (!Array.isArray(q.options) || q.options.length < 2) return null;
+    const labels = new Set();
+    const options = [];
+    for (const o of q.options) {
+      if (!isObj(o) || typeof o.label !== 'string' || labels.has(o.label)) return null;
+      labels.add(o.label);
+      options.push({ label: o.label, description: typeof o.description === 'string' ? o.description : '' });
+    }
+    out.push({
+      question: q.question,
+      header: typeof q.header === 'string' ? q.header : '',
+      multiSelect: q.multiSelect === true,
+      options,
+    });
+  }
+  return out;
+}
+
 export function planSummary(input) {
   if (!isObj(input) || typeof input.plan !== 'string') return null;
   const line = input.plan.split('\n').map((l) => l.trim()).find((l) => l.length > 0);
