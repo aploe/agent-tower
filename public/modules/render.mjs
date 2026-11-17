@@ -3,6 +3,7 @@
 import { LANGUAGE_NAMES, S } from '../strings.mjs';
 import { duration, relTime, stateLine, stateMark, thirdLine, unreadable } from './format.mjs';
 import { hueIndex } from './figure.mjs';
+import { choicesComplete, requestsOf } from './answer.mjs';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -157,13 +158,93 @@ function rowActions(session, handlers) {
   return [open, cross];
 }
 
-function openPill(session, handlers) {
+function openButton(session, handlers) {
   if (!session.canOpen) return null;
-  return h('div', { class: 'pills' },
-    h('button', { class: 'pill', on: { click: (e) => { e.stopPropagation(); handlers.open(session.id); } } }, openLabel(session)));
+  return h('button', { class: 'pill', on: { click: (e) => { e.stopPropagation(); handlers.open(session.id); } } }, openLabel(session));
 }
 
-function askBlock(session, handlers) {
+function openPill(session, handlers) {
+  const button = openButton(session, handlers);
+  return button ? h('div', { class: 'pills' }, button) : null;
+}
+
+// ---------- held permission requests: answered here ----------
+// Every control that answers something goes through `guarded`: it never selects the row, and
+// it ignores a click that comes too soon after its block appeared or moved (handlers.armed).
+
+const guarded = (handlers, act) => (e) => {
+  e.stopPropagation();
+  if (handlers.armed()) act();
+};
+
+function answerPill(label, { primary = false, disabled = false }, handlers, act) {
+  const pill = h('button', { class: 'pill' + (primary ? ' is-primary' : ''), on: { click: guarded(handlers, act) } }, label);
+  pill.disabled = disabled;
+  return pill;
+}
+
+/** The frame of one request: the page finds its position through data-request; a click
+ *  inside it (to scroll or mark the command) does not open the detail view. */
+function requestFrame(request, ...children) {
+  const frame = h('div', { class: 'request', on: { click: (e) => e.stopPropagation() } }, ...children);
+  frame.dataset.request = request.id;
+  return frame;
+}
+
+/** The tool and everything it is about to do, in full, above Allow and Deny. */
+function permissionBlock(session, request, handlers, ui) {
+  const busy = ui.sending?.has(request.id) ?? false;
+  const send = (behavior) => handlers.answer(session.id, request.id, { requestId: request.id, behavior });
+  return requestFrame(request,
+    h('div', { class: 'request-detail' }, h('span', { class: 'tool' }, `${request.tool}: `), request.detail ?? ''),
+    // The call's other inputs stand below the box, never behind its scroll: one of them can
+    // be the reason the call needs permission.
+    (request.extras ?? []).length
+      ? h('div', { class: 'request-extras' }, ...request.extras.map((line) => h('div', {}, line)))
+      : null,
+    h('div', { class: 'pills' },
+      answerPill(S.allow, { primary: true, disabled: busy }, handlers, () => send('allow')),
+      answerPill(S.deny, { disabled: busy }, handlers, () => send('deny')),
+      openButton(session, handlers)));
+}
+
+/** Every question of the call with its options to pick, then Send. */
+function questionBlock(session, request, handlers, ui) {
+  const questions = request.questions ?? [];
+  const choices = ui.choices?.get(request.id);
+  const busy = ui.sending?.has(request.id) ?? false;
+  const option = (q, k) => (o, i) => {
+    const on = choices?.[k]?.includes(i) ?? false;
+    const row = h('button', {
+      class: 'option' + (on ? ' is-on' : ''),
+      tip: o.description,
+      on: { click: guarded(handlers, () => handlers.choose(request.id, questions, k, i)) },
+    }, h('span', { class: 'option-mark' }), h('span', { class: 'option-label' }, o.label));
+    row.setAttribute('role', q.multiSelect ? 'checkbox' : 'radio');
+    row.setAttribute('aria-checked', String(on));
+    row.disabled = busy;
+    return row;
+  };
+  return requestFrame(request,
+    h('div', { class: 'question-box' },
+      ...questions.map((q, k) => h('div', { class: 'ask-question' },
+        q.header ? h('span', { class: 'chip' }, q.header) : null,
+        h('div', { class: 'question' }, q.question),
+        h('div', { class: 'option-list' + (q.multiSelect ? ' is-multi' : '') }, ...q.options.map(option(q, k)))))),
+    h('div', { class: 'pills' },
+      answerPill(S.send, { primary: true, disabled: busy || !choicesComplete(questions, choices) }, handlers,
+        () => handlers.answer(session.id, request.id, { requestId: request.id, behavior: 'allow', choices })),
+      openButton(session, handlers)));
+}
+
+function askBlock(session, handlers, ui) {
+  // Requests the daemon holds can be answered here. Without one (no hook, another kind of
+  // session, answering switched off) the block below only shows what is asked.
+  const held = requestsOf(session);
+  if (held.length) {
+    return h('div', { class: 'ask' },
+      ...held.map((r) => (r.kind === 'question' ? questionBlock : permissionBlock)(session, r, handlers, ui)));
+  }
   const ask = session.ask;
   if (!ask) return h('div', { class: 'ask' }, openPill(session, handlers));
   if (ask.kind === 'question' && Array.isArray(ask.questions) && ask.questions.length) {
@@ -197,7 +278,7 @@ function card(session, nowMs, handlers, ui) {
       stateRow(session, line),
       h('div', { class: 'meta', tip: session.cwd }, thirdLine(session, nowMs))),
     h('div', { class: 'actions' }, ...rowActions(session, handlers)),
-    session.state === 'prompt' ? askBlock(session, handlers) : null,
+    session.state === 'prompt' ? askBlock(session, handlers, ui) : null,
     reason ? h('div', { class: 'reason' }, reason) : null);
 }
 
@@ -283,7 +364,7 @@ export function renderDetail(root, session, stepsAnswer, nowMs, handlers, snapsh
         h('div', { class: 'title', tip: session.title }, session.title),
         stateRow(session, line),
         h('div', { class: 'meta', tip: session.cwd }, thirdLine(session, nowMs)))),
-    session.state === 'prompt' ? h('div', { class: 'detail-ask' }, askBlock(session, handlers)) : null,
+    session.state === 'prompt' ? h('div', { class: 'detail-ask' }, askBlock(session, handlers, ui)) : null,
     reason ? h('div', { class: 'reason' }, reason) : null,
     h('div', { class: 'divider' }),
     steps.length

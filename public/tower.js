@@ -4,7 +4,8 @@
 // (live mode follows the daemon's setting).
 import { renderDetail, renderHeader, renderList, renderSettings } from './modules/render.mjs';
 import { assignHues } from './modules/figure.mjs';
-import { getSettings, getSteps, post, setSettings, subscribe } from './modules/api.mjs';
+import { answer as sendAnswer, getSettings, getSteps, post, setSettings, subscribe } from './modules/api.mjs';
+import { ARM_MS, layoutSignature, requestsOf, toggleChoice } from './modules/answer.mjs';
 import { createBridge } from './modules/bridge.mjs';
 import { LANGUAGES, S, setLanguage } from './strings.mjs';
 
@@ -30,6 +31,10 @@ const ui = {
   reasons: new Map(),
   hues: new Map(), // session id → figure colour, held while the session is listed
   settingsOpen: params.get('settings') === '1',
+  // Answering held permission requests, by request id:
+  choices: new Map(), // the options picked so far in a question block (every render rebuilds the DOM)
+  sending: new Set(), // answered here; its controls stay off until the request leaves the snapshot
+  armAt: 0, // performance.now() from which the answer controls take clicks again
 };
 const CHIPS = [30, 60, 120, 240, 480]; // minutes; a value from a config file joins them
 // What the settings view shows. null: not known (the control is disabled, no state).
@@ -46,6 +51,7 @@ let lastView = 'list';
 let listScrollY = 0;
 let lastHeight = -1;
 let lastAttention = -1;
+let lastLayout = ''; // where the answer controls sat after the last render
 
 const now = () => (fixture ? fixtureNow : Date.now() + clockSkew);
 
@@ -56,6 +62,10 @@ function render() {
   if (!selected) ui.selectedId = null;
   if ((snapshot.counts?.dismissed ?? 0) === 0) ui.showHidden = false;
   ui.hues = assignHues(snapshot.sessions, ui.hues);
+  // What was picked or sent for a request is forgotten once the request is gone.
+  const heldIds = new Set(snapshot.sessions.flatMap((s) => requestsOf(s).map((r) => r.id)));
+  for (const id of ui.choices.keys()) if (!heldIds.has(id)) ui.choices.delete(id);
+  for (const id of ui.sending) if (!heldIds.has(id)) ui.sending.delete(id);
   const view = ui.settingsOpen ? 'settings' : selected ? 'detail' : 'list';
   const y = window.scrollY;
   if (lastView === 'list') listScrollY = y;
@@ -92,6 +102,18 @@ function render() {
   if (height !== lastHeight) {
     lastHeight = height;
     bridge.resize(height);
+  }
+  // A click that was already on its way must not allow a command: whenever an answer block
+  // appeared, left or moved, the view changed, or the page height did (the shell keeps the
+  // window's bottom edge, so everything moves on screen), the controls rest for a moment.
+  const blocks = [...app.querySelectorAll('[data-request]')].map((el) => ({
+    id: el.dataset.request,
+    top: Math.round(el.getBoundingClientRect().top + window.scrollY),
+  }));
+  const layout = layoutSignature({ view, height, blocks });
+  if (layout !== lastLayout) {
+    lastLayout = layout;
+    ui.armAt = performance.now() + ARM_MS;
   }
   document.body.dataset.ready = '1';
 }
@@ -336,6 +358,26 @@ const handlers = {
   dismiss: (id) => changeHidden(id, 'dismiss'),
   restore: (id) => changeHidden(id, 'restore'),
   hide: () => bridge.hide(),
+
+  // --- answering a held permission request ---
+  /** False for a moment after an answer block appeared or moved (see render). */
+  armed: () => performance.now() >= ui.armAt,
+  /** A click on option `index` of question `q` in a question block. */
+  choose(requestId, questions, q, index) {
+    ui.choices.set(requestId, toggleChoice(questions, ui.choices.get(requestId), q, index));
+    scheduleRender();
+  },
+  /** Allow, Deny or Send. After a yes from the daemon the block stays switched off until the
+   *  next snapshot no longer has the request; a refusal shows in the row and frees it again. */
+  async answer(sessionId, requestId, body) {
+    if (fixture || ui.sending.has(requestId)) return;
+    ui.sending.add(requestId);
+    scheduleRender();
+    const result = await sendAnswer(sessionId, body);
+    if (result.ok === true) return;
+    ui.sending.delete(requestId);
+    showReason(sessionId, result.reason ?? S.offline);
+  },
 };
 
 // ---------- start ----------
@@ -373,4 +415,15 @@ if (fixture) {
   startFixture();
 } else {
   startLive();
+}
+// The page can change its size without a render: the fonts arrive after the first one and
+// move things by a few pixels. Render again then, so that the window height and the remembered
+// place of the answer controls are those of the layout on screen. (Without this the next
+// render saw a "move" that was long over, and the controls ignored the click after it.)
+// Never before the first regular render: that one waits for its data, and an earlier, empty
+// render would drop the selected session and tell the screenshot tool the page is ready.
+if (typeof ResizeObserver === 'function') {
+  new ResizeObserver(() => {
+    if (document.body.dataset.ready === '1') scheduleRender();
+  }).observe(app);
 }

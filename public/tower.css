@@ -336,7 +336,7 @@ button {
   color: var(--text-faint);
 }
 
-.pills { display: flex; gap: 6px; margin-top: 9px; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .pill {
   height: 28px;
   padding: 0 12px;
@@ -347,6 +347,81 @@ button {
   white-space: nowrap;
 }
 .pill:hover { background: var(--pill-hover); }
+.pill.is-primary { background: var(--accent); color: var(--on-accent); font-weight: 750; }
+.pill.is-primary:hover { background: color-mix(in oklab, var(--accent) 86%, white); }
+.pill:disabled { opacity: 0.45; cursor: default; }
+.pill:disabled:hover { background: var(--pill); }
+.pill.is-primary:disabled:hover { background: var(--accent); }
+
+/* A held permission request, answered here: what is asked in full, then the buttons. The
+   selected option is marked without changing its size, so a pick does not move the block. */
+.request { cursor: default; }
+.request + .request { margin-top: 14px; }
+.request-detail {
+  max-height: 150px; /* about eight lines; a longer command scrolls inside */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-faint) transparent;
+  padding: 8px 10px;
+  /* A dark edge at the top or bottom while more of the command lies beyond it: the covers
+     scroll with the text and hide the shadows at either end. */
+  background:
+    linear-gradient(var(--inset) 40%, transparent) top / 100% 22px no-repeat local,
+    linear-gradient(transparent, var(--inset) 60%) bottom / 100% 22px no-repeat local,
+    linear-gradient(rgb(0 0 0 / 0.55), transparent) top / 100% 9px no-repeat scroll,
+    linear-gradient(transparent, rgb(0 0 0 / 0.55)) bottom / 100% 9px no-repeat scroll,
+    var(--inset);
+  border-radius: var(--r-inset);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.request-detail .tool { color: var(--text-faint); }
+/* What is about to run is shown character by character: no "--" or "!=" drawn as one glyph. */
+.request-detail,
+.request-extras {
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0, 'calt' 0;
+}
+.request-extras {
+  margin-top: 6px;
+  padding: 0 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ask-question + .ask-question { margin-top: 14px; }
+.option-list { display: flex; flex-direction: column; gap: 4px; }
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 9px;
+  background: var(--option);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 550;
+  text-align: left;
+}
+.option:hover:not(:disabled) { background: var(--pill); }
+.option:disabled { cursor: default; opacity: 0.6; }
+.option.is-on { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.option-mark {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-faint);
+}
+.option-list.is-multi .option-mark { border-radius: 3px; }
+.option.is-on .option-mark { border-color: var(--accent); background: var(--accent); }
+.option-label { min-width: 0; overflow-wrap: anywhere; }
 
 /* single-line rows for idle sessions */
 .line-row {
