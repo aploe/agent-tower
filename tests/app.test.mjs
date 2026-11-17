@@ -325,9 +325,9 @@ test('an SSE client that leaves during the first collect does not keep the poll 
 
 // --- settings API ---------------------------------------------------------------------
 const DEFAULT_SETTINGS = {
-  values: { idleAfterMinutes: 240, language: 'en' },
-  defaults: { idleAfterMinutes: 240, language: 'en' },
-  limits: { idleAfterMinutes: { min: 5, max: 1440 }, language: { values: ['en', 'de'] } },
+  values: { idleAfterMinutes: 240, language: 'en', answerInWidget: true },
+  defaults: { idleAfterMinutes: 240, language: 'en', answerInWidget: true },
+  limits: { idleAfterMinutes: { min: 5, max: 1440 }, language: { values: ['en', 'de'] }, answerInWidget: { values: [true, false] } },
 };
 const settingsFile = (t) => path.join(t.cfg.stateDir, 'settings.json');
 const exists = (f) => fs.access(f).then(() => true, () => false);
@@ -349,8 +349,8 @@ test('POST /api/settings stores the override and the next collect uses it', asyn
     const res = await t.post('/api/settings', { body: '{"idleAfterMinutes":60}' });
     assert.equal(res.status, 200);
     const body = await res.json();
-    assert.deepEqual(body.values, { idleAfterMinutes: 60, language: 'en' });
-    assert.deepEqual(body.defaults, { idleAfterMinutes: 240, language: 'en' });
+    assert.deepEqual(body.values, { idleAfterMinutes: 60, language: 'en', answerInWidget: true });
+    assert.deepEqual(body.defaults, { idleAfterMinutes: 240, language: 'en', answerInWidget: true });
     await fetch(`${t.base}/api/state`);
     assert.equal(t.calls.idle.at(-1), 60);
   } finally { await t.stop(); }
@@ -360,7 +360,7 @@ test('POST /api/settings with a language switches the daemon\'s own refusals', a
   const t = await start();
   try {
     const res = await t.post('/api/settings', { body: '{"language":"de"}' });
-    assert.deepEqual((await res.json()).values, { idleAfterMinutes: 240, language: 'de' });
+    assert.deepEqual((await res.json()).values, { idleAfterMinutes: 240, language: 'de', answerInWidget: true });
     const refused = await (await t.post(`/api/sessions/${B}/open`)).json();
     assert.deepEqual(refused, { ok: false, reason: 'Für diese Session gibt es keinen Sprung' });
     await t.post('/api/settings', { body: '{"language":"en"}' });
@@ -391,7 +391,7 @@ test('the override survives a restart of the daemon', async () => {
     await new Promise((r) => second.listen(0, '127.0.0.1', r));
     try {
       const base = `http://127.0.0.1:${second.address().port}`;
-      assert.deepEqual((await (await fetch(`${base}/api/settings`)).json()).values, { idleAfterMinutes: 60, language: 'en' });
+      assert.deepEqual((await (await fetch(`${base}/api/settings`)).json()).values, { idleAfterMinutes: 60, language: 'en', answerInWidget: true });
       await fetch(`${base}/api/state`);
       assert.equal(idle[0], 60);
     } finally {
@@ -406,11 +406,11 @@ test('POST back to the default removes the override', async () => {
   try {
     await t.post('/api/settings', { body: '{"idleAfterMinutes":60}' });
     const res = await t.post('/api/settings', { body: '{"idleAfterMinutes":240}' });
-    assert.deepEqual((await res.json()).values, { idleAfterMinutes: 240, language: 'en' });
+    assert.deepEqual((await res.json()).values, { idleAfterMinutes: 240, language: 'en', answerInWidget: true });
     assert.deepEqual(JSON.parse(await fs.readFile(settingsFile(t), 'utf8')), {});
     await t.post('/api/settings', { body: '{"idleAfterMinutes":60}' });
     await t.post('/api/settings', { body: '{"idleAfterMinutes":null}' });
-    assert.deepEqual((await (await fetch(`${t.base}/api/settings`)).json()).values, { idleAfterMinutes: 240, language: 'en' });
+    assert.deepEqual((await (await fetch(`${t.base}/api/settings`)).json()).values, { idleAfterMinutes: 240, language: 'en', answerInWidget: true });
     await fetch(`${t.base}/api/state`);
     assert.equal(t.calls.idle.at(-1), 240);
   } finally { await t.stop(); }
@@ -435,7 +435,7 @@ test('POST /api/settings guards: refused requests change and write nothing', asy
       const body = await res.json();
       assert.equal(body.ok, false);
       assert.equal(typeof body.reason, 'string');
-      assert.deepEqual((await (await fetch(`${t.base}/api/settings`)).json()).values, { idleAfterMinutes: 240, language: 'en' });
+      assert.deepEqual((await (await fetch(`${t.base}/api/settings`)).json()).values, { idleAfterMinutes: 240, language: 'en', answerInWidget: true });
       assert.equal(await exists(settingsFile(t)), false);
     }
     assert.equal((await t.post('/api/settings', { body: '{"idleAfterMinutes":60}' })).status, 200);

@@ -14,9 +14,24 @@ test('KEYS, defaultsOf and limitsOf', () => {
   assert.deepEqual(KEYS, {
     idleAfterMinutes: { min: 5, max: 1440 },
     language: { values: ['en', 'de'], fallback: 'en' },
+    answerInWidget: { values: [true, false], fallback: true },
   });
-  assert.deepEqual(defaultsOf({ idleAfterMinutes: 240, language: 'de', pollMs: 500 }), { idleAfterMinutes: 240, language: 'de' });
-  assert.deepEqual(limitsOf(), { idleAfterMinutes: { min: 5, max: 1440 }, language: { values: ['en', 'de'] } });
+  assert.deepEqual(defaultsOf({ idleAfterMinutes: 240, language: 'de', answerInWidget: false, pollMs: 500 }),
+    { idleAfterMinutes: 240, language: 'de', answerInWidget: false });
+  assert.deepEqual(limitsOf(), {
+    idleAfterMinutes: { min: 5, max: 1440 }, language: { values: ['en', 'de'] }, answerInWidget: { values: [true, false] },
+  });
+});
+
+test('answerInWidget is an on/off setting that is on unless the config says false', () => {
+  assert.deepEqual(validatePatch({ answerInWidget: false }), { ok: true, patch: { answerInWidget: false } });
+  assert.deepEqual(validatePatch({ answerInWidget: null }), { ok: true, patch: { answerInWidget: null } });
+  for (const v of [0, 1, 'true', 'false', {}]) {
+    assert.deepEqual(validatePatch({ answerInWidget: v }), { ok: false, reason: 'answerInWidget must be one of true, false' });
+  }
+  assert.equal(defaultsOf({ idleAfterMinutes: 240 }).answerInWidget, true);
+  assert.equal(defaultsOf({ idleAfterMinutes: 240, answerInWidget: 'no' }).answerInWidget, true);
+  assert.equal(defaultsOf({ idleAfterMinutes: 240, answerInWidget: false }).answerInWidget, false);
 });
 
 test('defaultsOf: a missing or unknown language in the config falls back to English', () => {
@@ -65,6 +80,9 @@ test('loadSettings: missing, damaged and foreign content give no overrides', asy
       ['{"idleAfterMinutes":120,"x":1}', { idleAfterMinutes: 120 }],
       ['{"language":"de"}', { language: 'de' }],
       ['{"language":"klingon","idleAfterMinutes":60}', { idleAfterMinutes: 60 }],
+      ['{"answerInWidget":false}', { answerInWidget: false }],
+      ['{"answerInWidget":0,"idleAfterMinutes":60}', { idleAfterMinutes: 60 }],
+      ['{"answerInWidget":"no"}', {}],
     ];
     for (const [text, expected] of cases) {
       await fs.writeFile(file, text);

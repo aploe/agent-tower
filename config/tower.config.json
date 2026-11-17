@@ -4,6 +4,7 @@
   "pollMs": 1000,
   "idleAfterMinutes": 240,
   "language": "en",
+  "answerInWidget": true,
   "promptAfterSeconds": 60,
   "claudeDir": "~/.claude",
   "windowsClaudeDir": null,

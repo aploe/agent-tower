@@ -8,6 +8,9 @@ import path from 'node:path';
 export const KEYS = {
   idleAfterMinutes: { min: 5, max: 1440 },
   language: { values: ['en', 'de'], fallback: 'en' },
+  // Whether permission requests are held for answering in the widget. Off: every hook call is
+  // passed through at once, without touching the hook entry in Claude Code's settings.
+  answerInWidget: { values: [true, false], fallback: true },
 };
 
 const FILE = 'settings.json';

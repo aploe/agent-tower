@@ -52,6 +52,13 @@ test('local file overrides top-level keys, fallback merges per key', async () =>
   assert.deepEqual(cfg.fallback, { workingMinutes: 3, promptMinutes: 1, waitingMinutes: 30 });
 });
 
+test('answerInWidget is on in the checked-in config; the local file can switch it off', async () => {
+  const on = await loadConfig({ root: await makeRoot(), env: { HOME: '/h' }, argv: [] });
+  assert.equal(on.answerInWidget, true);
+  const off = await loadConfig({ root: await makeRoot('{"answerInWidget":false}'), env: { HOME: '/h' }, argv: [] });
+  assert.equal(off.answerInWidget, false);
+});
+
 test('configured paths expand ~ and resolve to absolute paths', async () => {
   const root = await makeRoot(JSON.stringify({ claudeDir: 'data/claude', colonyHookDir: '~/hooks', wslDistro: 'Debian' }));
   const cfg = await loadConfig({ root, env: { HOME: '/h', WSL_DISTRO_NAME: 'Ubuntu' }, argv: [] });
