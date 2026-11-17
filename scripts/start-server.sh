@@ -67,7 +67,7 @@ for _ in $(seq 20); do
   PID="$(tower_pid)"
   if [ -n "$PID" ]; then
     echo "Agent Tower -> http://127.0.0.1:$PORT   (PID ${PID:-?}, Log: $LOG)"
-    grep "^Warnung:" "$LOG" || true
+    grep "^Warning:" "$LOG" || true
     exit 0
   fi
   sleep 0.3
