@@ -4,7 +4,7 @@ A Claude Code session that waits for your answer does nothing until you look. Ag
 
 ![Agent Tower: two sessions asking for you at the top of the list, one waiting for permission to push and one with a question about a CSV export; next to it the detail view of a session that runs a test suite](docs/img/hero.png)
 
-*The screenshots show made-up demo sessions. The interface is German for now.*
+*The screenshots show made-up demo sessions.*
 
 ## Why
 
@@ -14,7 +14,7 @@ Meanwhile those agents sit idle, and the work they would do next waits for a sin
 
 ## What it does
 
-Sessions that wait for a permission, an answer or a plan approval get a lime frame and move to the top. The header counts them ("2 fragen", two asking) and keeps counting when you fold the window down to that one line. A permission prompt raised by a subagent shows up on its parent's row, because that is where you answer it.
+Sessions that wait for a permission, an answer or a plan approval get a lime frame and move to the top. The header counts them ("2 asking") and keeps counting when you fold the window down to that one line. A permission prompt raised by a subagent shows up on its parent's row, because that is where you answer it.
 
 The card tells you what the session wants before you switch: the command it wants to run, or the question with its options. Often that is enough to know whether it takes two seconds or real thought. A click on the row opens the session's latest steps and the last terminal command with its output, and the coloured faces at the top switch between sessions.
 
@@ -28,7 +28,7 @@ Everything else stays quiet. A working session shows the step it is on. A finish
 
 Agent Tower reads. It installs no hooks, writes nothing into Claude Code's folders and has no button that ends a session or a process. Its state (hidden rows and your settings) lives in a folder of its own, and the daemon listens on `127.0.0.1` only. Quit it and nothing changes for your sessions; they never knew it was there.
 
-It also does not pretend. A long-running command can look like a permission prompt, so when Agent Tower cannot prove that a session is asking, the row says "fragt vermutlich" (probably asking) behind a dashed frame instead of the lime one. A value it cannot know is shown as a dash, not as a plausible guess.
+It also does not pretend. A long-running command can look like a permission prompt, so when Agent Tower cannot prove that a session is asking, the row says "probably asking" behind a dashed frame instead of the lime one. A value it cannot know is shown as a dash, not as a plausible guess.
 
 ## Where it runs
 
@@ -54,7 +54,7 @@ Run this in WSL:
 ./scripts/build-shell.sh
 ```
 
-It publishes the shell to `%LOCALAPPDATA%\AgentTower\app\`, writes `settings.json` one folder up if there is none yet, and puts "Agent Tower" into the Start Menu. With `--test` it runs the shell's unit tests first. The app has to be closed while it is rebuilt (tray icon, "Beenden"); the script says so when the exe is still in use.
+It publishes the shell to `%LOCALAPPDATA%\AgentTower\app\`, writes `settings.json` one folder up if there is none yet, and puts "Agent Tower" into the Start Menu. With `--test` it runs the shell's unit tests first. The app has to be closed while it is rebuilt (tray icon, "Quit"); the script says so when the exe is still in use.
 
 Start the app from the Start Menu. It checks whether the daemon answers and starts it if not. The header's X hides the window, a left click on the tray icon brings it back. The gear in the header opens the settings: start with Windows, always on top, and after how long a finished session moves to the slim rows.
 
@@ -84,7 +84,7 @@ The daemon writes its log to `/tmp/agent-tower.log`, and the page opens in any b
 
 ## Uninstall
 
-Switch off "Mit Windows starten" in the widget's settings, or delete the value `AgentTower` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` by hand. Quit the app and run `./scripts/stop-server.sh`. Then delete the folder `%LOCALAPPDATA%\AgentTower`, the shortcut `Agent Tower.lnk` in `%APPDATA%\Microsoft\Windows\Start Menu\Programs\`, and `~/.local/state/agent-tower` in WSL.
+Switch off "Start with Windows" in the widget's settings, or delete the value `AgentTower` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` by hand. Quit the app and run `./scripts/stop-server.sh`. Then delete the folder `%LOCALAPPDATA%\AgentTower`, the shortcut `Agent Tower.lnk` in `%APPDATA%\Microsoft\Windows\Start Menu\Programs\`, and `~/.local/state/agent-tower` in WSL.
 
 ## Credits
 
