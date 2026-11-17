@@ -43,12 +43,14 @@ async function start({ cfgOverrides = {}, collect } = {}) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tower-requests-'));
   const cfg = { host: '127.0.0.1', port: 0, pollMs: 30, stateDir: path.join(root, 'state'), idleAfterMinutes: 240, answerInWidget: true, ...cfgOverrides };
   const states = { [S1]: 'prompt', [S2]: 'prompt', [S3]: 'prompt' };
+  const registry = {}; // id → the registry status its row carries; a session without an entry has none
   const snapshot = () => ({
     generatedAt: new Date().toISOString(),
     sources: {},
     counts: {},
     sessions: Object.keys(states).map((id) => ({
       id, state: states[id], ...KIND[id], canOpen: KIND[id].opensIn !== null, dismissed: false, cwd: '/work/alpha',
+      ...(id in registry ? { registryStatus: registry[id] } : {}),
     })),
   });
   const lines = [];
@@ -103,7 +105,7 @@ async function start({ cfgOverrides = {}, collect } = {}) {
     await new Promise((r) => server.close(r));
     await fs.rm(root, { recursive: true, force: true });
   };
-  return { cfg, base, port, states, lines, hook, state, rowOf, held, post, server, stop };
+  return { cfg, base, port, states, registry, lines, hook, state, rowOf, held, post, server, stop };
 }
 
 test('an eligible request is held and shows on its row', async () => {
@@ -165,6 +167,30 @@ test('E4: the request is released when the session no longer asks', async () => 
     t.states[S1] = 'working'; // the user answered in the VS Code dialog
     assert.deepEqual(await within(call, 2000), NO_DECISION);
     assert.deepEqual((await t.rowOf(S1)).requests, []);
+  } finally { await t.stop(); }
+});
+
+test('a question of a run that shows no dialog is handed back, although its row says prompt', async () => {
+  const t = await start();
+  try {
+    // A headless run asks a question: its transcript makes the row "prompt" for good, but the
+    // registry stays busy because no dialog opens. Held for ever, the run would never go on.
+    t.registry[S1] = 'busy';
+    const question = { hook_event_name: 'PermissionRequest', session_id: S1, tool_name: 'AskUserQuestion',
+      tool_input: { questions: [{ question: 'Where to?', options: [{ label: 'A' }, { label: 'B' }] }] } };
+    assert.deepEqual(await within(t.hook(question), 2000), NO_DECISION);
+    assert.deepEqual((await t.rowOf(S1)).requests, []);
+    assert.deepEqual(t.lines.map((l) => l.replace(/after \d+ s/, 'after N s')), ['request: AskUserQuestion E4 after N s (session 123e4567)']);
+  } finally { await t.stop(); }
+});
+
+test('a request stays held while the registry says its session waits for the user', async () => {
+  const t = await start();
+  try {
+    t.registry[S1] = 'waiting';
+    const call = t.hook(bash());
+    await t.held(1);
+    assert.equal(await within(call, 400), 'pending');
   } finally { await t.stop(); }
 });
 

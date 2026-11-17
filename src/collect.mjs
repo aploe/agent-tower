@@ -152,6 +152,10 @@ export async function collect(cfg, { now = Date.now(), procRoot = '/proc', winSt
       state: d.state,
       stateSince: iso(d.stateSinceMs),
       stateSource: d.stateSource,
+      // What the registry itself says (waiting, busy, …; null when it has no status). "waiting"
+      // means a dialog is open in the session; `state` can be "prompt" without one, from an
+      // open question in the transcript of a run that shows no dialog.
+      registryStatus: typeof e.status === 'string' ? e.status : null,
       ask: d.state === 'prompt' ? askOf(d.ask) : null,
       current: currentOf(info),
       host: e.origin,

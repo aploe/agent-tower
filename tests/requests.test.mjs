@@ -162,6 +162,28 @@ test('E3 and E4: reconcile ends requests whose session is gone or no longer asks
   assert.deepEqual(said.get(patient), []);
 });
 
+test('E4 goes by the registry status when the row has one', () => {
+  const { s, clock, said, hold } = store();
+  const rows = (state, registryStatus) => ({ sessions: [{ ...row, state, registryStatus }] });
+  // A run without a dialog asked a question: its transcript makes the row "prompt", but the
+  // registry never said "waiting". Nobody can answer it anywhere else, so it must not be kept.
+  const lost = hold(ask);
+  clock.t = 4000;
+  assert.equal(s.reconcile(rows('prompt', 'busy')), 0); // within the grace
+  clock.t = 4001;
+  assert.equal(s.reconcile(rows('prompt', 'busy')), 1);
+  assert.deepEqual(said.get(lost), [null]);
+
+  const open = hold(ask);
+  clock.t = 999999;
+  assert.equal(s.reconcile(rows('prompt', 'waiting')), 0);
+  assert.equal(s.reconcile(rows('working', 'waiting')), 0); // the registry outranks the derived state
+  // No status in the registry (an older Claude Code): the derived state decides, as before.
+  assert.equal(s.reconcile(rows('prompt', null)), 0);
+  assert.deepEqual(said.get(open), []);
+  assert.equal(s.reconcile(rows('working', null)), 1);
+});
+
 test('reconcile takes its grace from the options', () => {
   const { s, clock, hold } = store({ graceMs: 100 });
   hold();

@@ -93,13 +93,24 @@ export function decisionFor(request, body) {
 }
 
 /**
+ * Whether a dialog is open in the row's session, so that a held request can still be answered
+ * there. The registry says so itself ("waiting"). The derived state is not enough: an open
+ * question in the transcript makes a row "prompt" even for a run that shows no dialog, and
+ * holding that request would keep the run waiting for nobody. Only when the registry has no
+ * status at all (an older Claude Code) does the derived state decide.
+ */
+function waitsForUser(row) {
+  return typeof row.registryStatus === 'string' ? row.registryStatus === 'waiting' : row.state === 'prompt';
+}
+
+/**
  * The held requests. `hold` takes the request from `eligibility` and a function that answers
  * the waiting hook call: respond(decision) with a decision, respond(null) for "no decision".
  * It is called at most once per request. A request ends in exactly one way:
  *
  *   E1  answered in the widget                                   → the decision
  *   E3  its session is no longer in the snapshot                 → no decision
- *   E4  its session no longer asks (state is not "prompt") and
+ *   E4  no dialog is open in its session (see waitsForUser) and
  *       the request is older than the grace                      → no decision
  *   E5  answering was switched off                               → no decision
  *   E6  Claude Code closed the call                              → nothing to send
@@ -150,11 +161,12 @@ export function createRequests({ now = Date.now, newId = randomUUID, graceMs = G
     },
 
     reconcile(snapshot) {
-      const states = new Map((snapshot?.sessions ?? []).map((s) => [s.id, s.state]));
+      const rows = new Map((snapshot?.sessions ?? []).map((s) => [s.id, s]));
       let ended = 0;
       for (const r of [...held.values()]) {
-        if (!states.has(r.sessionId)) ended += end(r.id, 'E3');
-        else if (states.get(r.sessionId) !== 'prompt' && now() - r.receivedAt > graceMs) ended += end(r.id, 'E4');
+        const row = rows.get(r.sessionId);
+        if (!row) ended += end(r.id, 'E3');
+        else if (!waitsForUser(row) && now() - r.receivedAt > graceMs) ended += end(r.id, 'E4');
       }
       return ended;
     },

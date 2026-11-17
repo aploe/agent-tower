@@ -113,6 +113,22 @@ test('a question session carries questions and a plan its summary; hook missing 
   assert.deepEqual(s.ask.questions, [{ question: 'Wohin?', header: 'Ziel', options: ['A', 'B'], multiSelect: false }]);
 });
 
+test('a row carries the registry status as it is, next to the state derived from everything', async () => {
+  const w = await world();
+  // A dialog is open: the registry says so.
+  await w.session('p1', { status: 'waiting', waitingFor: 'permission prompt', statusUpdatedAt: T - M });
+  await w.transcript('p1', [use('c1', 'Bash', { command: 'ls' }, T - M)]);
+  // A run without a dialog asks a question: the transcript makes it "prompt", the registry stays busy.
+  await w.session('q1', { status: 'busy' });
+  await w.transcript('q1', [use('c2', 'AskUserQuestion', { questions: [{ question: 'Wohin?', options: [{ label: 'A' }, { label: 'B' }] }] }, T - M)]);
+  await w.session('n1', { status: undefined });
+  const snap = await collect(w.cfg, { now: T, procRoot: w.procRoot });
+  const row = (id) => snap.sessions.find((x) => x.id === id);
+  assert.deepEqual([row('p1').state, row('p1').registryStatus], ['prompt', 'waiting']);
+  assert.deepEqual([row('q1').state, row('q1').registryStatus], ['prompt', 'busy']);
+  assert.equal(row('n1').registryStatus, null);
+});
+
 test('a dismissed finished session stays in the array with dismissed true and counts as dismissed', async () => {
   const w = await world();
   await w.session('wa1', { status: 'idle', statusUpdatedAt: T - 10 * M });
