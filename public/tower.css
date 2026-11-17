@@ -644,11 +644,14 @@ button {
 
 .choice-setting { padding: 4px 12px 8px; }
 .choice-setting .reason { padding: 6px 0 0; }
-.choice-setting .hint {
+.choice-setting .hint,
+.switch-hint {
   margin-top: 3px;
   font-size: 12px;
   color: var(--text-faint);
 }
+/* under a switch row: in line with its label, clear of the switch on the right */
+.switch-hint { margin: -6px 64px 8px 12px; }
 .choices { display: flex; gap: 6px; margin-top: 10px; }
 .choice {
   flex: 1 1 0;

@@ -383,17 +383,20 @@ export function renderDetail(root, session, stepsAnswer, nowMs, handlers, snapsh
 
 // ---------- settings ----------
 
-/** A switch row; the whole row is the button. value null: not known yet, disabled, no state shown. */
-function switchRow(label, key, value, reason, handlers, slide) {
+/** A switch row; the whole row is the button, `toggle(want)` gets the new value. value null: not
+ *  known yet, disabled, no state shown. An optional hint line stands below the row. */
+function switchRow(label, key, value, reason, toggle, slide, hint = null) {
   const known = typeof value === 'boolean';
   const row = h('button', {
     class: 'switch-row' + (value === true ? ' is-on' : '') + (slide?.key === key ? (slide.to ? ' slide-on' : ' slide-off') : ''),
-    on: { click: () => known && handlers.setOption(key, !value) },
+    on: { click: () => known && toggle(!value) },
   }, h('span', { class: 'row-label' }, label), h('span', { class: 'switch' }, h('span', { class: 'knob' })));
   row.setAttribute('role', 'switch');
   if (known) row.setAttribute('aria-checked', String(value));
   else row.disabled = true;
-  return h('div', { class: 'setting' }, row, reason ? h('div', { class: 'reason' }, reason) : null);
+  return h('div', { class: 'setting' }, row,
+    hint ? h('div', { class: 'hint switch-hint' }, hint) : null,
+    reason ? h('div', { class: 'reason' }, reason) : null);
 }
 
 /** A label, an optional hint and one chip per choice. value null: not known yet, all chips disabled. */
@@ -416,9 +419,10 @@ function choiceRow(cls, label, hint, { value, choices }, labelOf, pick, reason) 
 }
 
 /**
- * The third view. model = { shell: null | { autostart, topmost }, idle: { value, choices },
- * language: { value, choices }, reasons, slide } (values null while unknown; slide: { key, to }
- * animates that switch once). shell: null hides the switches (a plain browser).
+ * The third view. model = { shell: null | { autostart, topmost }, answerInWidget,
+ * idle: { value, choices }, language: { value, choices }, reasons, slide } (values null while
+ * unknown; slide: { key, to } animates that switch once). shell: null hides the two switches
+ * of the Windows shell (a plain browser); the daemon's settings show everywhere.
  */
 export function renderSettings(root, model, handlers, ui) {
   root.append(h('header', { class: 'detail-header' },
@@ -432,9 +436,14 @@ export function renderSettings(root, model, handlers, ui) {
 
   const { shell, reasons } = model;
   root.append(h('section', { class: 'settings-card' + stale(ui) },
-    shell ? switchRow(S.autostart, 'autostart', shell.autostart, reasons.get('autostart'), handlers, model.slide) : null,
-    shell ? switchRow(S.topmost, 'topmost', shell.topmost, reasons.get('topmost'), handlers, model.slide) : null,
+    shell ? switchRow(S.autostart, 'autostart', shell.autostart, reasons.get('autostart'),
+      (want) => handlers.setOption('autostart', want), model.slide) : null,
+    shell ? switchRow(S.topmost, 'topmost', shell.topmost, reasons.get('topmost'),
+      (want) => handlers.setOption('topmost', want), model.slide) : null,
     shell ? h('div', { class: 'divider' }) : null,
+    switchRow(S.answerInWidget, 'answerInWidget', model.answerInWidget, reasons.get('answerInWidget'),
+      handlers.setAnswerInWidget, model.slide, S.answerInWidgetHint),
+    h('div', { class: 'divider' }),
     choiceRow('idle', S.idleAfter, S.idleAfterHint, model.idle, duration, handlers.setIdle, reasons.get('idle')),
     h('div', { class: 'divider' }),
     choiceRow('language', S.language, null, model.language, (code) => LANGUAGE_NAMES[code] ?? code,

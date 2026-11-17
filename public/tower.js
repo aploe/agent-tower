@@ -38,7 +38,7 @@ const ui = {
 };
 const CHIPS = [30, 60, 120, 240, 480]; // minutes; a value from a config file joins them
 // What the settings view shows. null: not known (the control is disabled, no state).
-const settings = { autostart: null, topmost: null, idle: null, language: null };
+const settings = { autostart: null, topmost: null, idle: null, language: null, answerInWidget: null };
 const pendingOption = new Map(); // key → { want, prev, timer } while the shell has not answered
 let slide = null; // { key, to }: the switch to animate in the next render only (a render rebuilds the DOM, so a CSS transition cannot run)
 let snapshot = { counts: { total: 0, prompt: 0, dismissed: 0 }, sessions: [] };
@@ -84,6 +84,7 @@ function render() {
     const choices = idleValue == null || CHIPS.includes(idleValue) ? CHIPS : [...CHIPS, idleValue].sort((a, b) => a - b);
     const model = {
       shell: bridge.inShell || fixture ? { autostart: settings.autostart, topmost: settings.topmost } : null,
+      answerInWidget: settings.answerInWidget,
       idle: { value: idleValue, choices },
       language: { value: settings.language, choices: LANGUAGES },
       reasons: ui.reasons,
@@ -257,8 +258,12 @@ bridge.onOptions((answer) => {
 });
 
 // The daemon's settings in the view: field in `settings` → key and value type in the daemon.
-const DAEMON = { idle: { key: 'idleAfterMinutes', type: 'number' }, language: { key: 'language', type: 'string' } };
-const asks = { idle: 0, language: 0 }; // per field: only the answer to the newest request counts
+const DAEMON = {
+  idle: { key: 'idleAfterMinutes', type: 'number' },
+  language: { key: 'language', type: 'string' },
+  answerInWidget: { key: 'answerInWidget', type: 'boolean' },
+};
+const asks = { idle: 0, language: 0, answerInWidget: 0 }; // per field: only the answer to the newest request counts
 
 /** Shows the page in `code` and tells the shell; an unknown code changes nothing. */
 function useLanguage(code) {
@@ -306,7 +311,7 @@ async function changeSetting(field, value) {
 /** At start and on opening: ask the shell and the daemon. An old shell or daemon never answers; the controls stay disabled. */
 async function loadSettings() {
   bridge.options();
-  const ask = { idle: ++asks.idle, language: ++asks.language };
+  const ask = Object.fromEntries(Object.keys(DAEMON).map((field) => [field, ++asks[field]]));
   try {
     const values = (await getSettings())?.values ?? {};
     for (const [field, { key, type }] of Object.entries(DAEMON)) {
@@ -333,6 +338,12 @@ const handlers = {
   setOption: changeOption,
   setIdle: (minutes) => changeSetting('idle', minutes),
   setLanguage: (code) => changeSetting('language', code),
+  /** Whether held permission requests can be answered here; a daemon setting like the two above. */
+  setAnswerInWidget(want) {
+    if (fixture) return;
+    slide = { key: 'answerInWidget', to: want };
+    changeSetting('answerInWidget', want);
+  },
   select(id) {
     ui.selectedId = id;
     scheduleRender();
@@ -393,7 +404,9 @@ async function startFixture() {
   }
   if (ui.settingsOpen) {
     // fixed values for screenshots
-    Object.assign(settings, { autostart: true, topmost: true, idle: 240, language: LANGUAGES.includes(langParam) ? langParam : 'en' });
+    Object.assign(settings, {
+      autostart: true, topmost: true, idle: 240, answerInWidget: true, language: LANGUAGES.includes(langParam) ? langParam : 'en',
+    });
   }
   scheduleRender();
 }
