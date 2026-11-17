@@ -3,10 +3,15 @@
 //
 // The daemon never decides anything by itself. A decision exists only as the answer to one
 // held request, built here from what the user clicked.
+import { randomUUID } from 'node:crypto';
+import { say } from './messages.mjs';
 import { requestDetail, requestQuestions } from './steps.mjs';
 import { UUID } from './vscode.mjs';
 
 export const MAX_HELD = 50;
+/** How long a new request may wait for its session to show up as asking before it counts as
+ *  answered elsewhere: the hook call arrives a moment before the registry says "waiting". */
+export const GRACE_MS = 3000;
 
 /** What the deny button sends. `interrupt` makes it behave like "No" in the VS Code dialog: the
  *  session stops and waits. Claude Code then shows its own rejection text; the message is kept
@@ -85,4 +90,95 @@ export function decisionFor(request, body) {
   if (behavior !== 'allow' && behavior !== 'deny') return refuse('Unknown answer');
   if (body.choices !== undefined) return refuse('Choices do not belong to a permission request');
   return { ok: true, decision: behavior === 'allow' ? { behavior: 'allow' } : DENY };
+}
+
+/**
+ * The held requests. `hold` takes the request from `eligibility` and a function that answers
+ * the waiting hook call: respond(decision) with a decision, respond(null) for "no decision".
+ * It is called at most once per request. A request ends in exactly one way:
+ *
+ *   E1  answered in the widget                                   → the decision
+ *   E3  its session is no longer in the snapshot                 → no decision
+ *   E4  its session no longer asks (state is not "prompt") and
+ *       the request is older than the grace                      → no decision
+ *   E5  answering was switched off                               → no decision
+ *   E6  Claude Code closed the call                              → nothing to send
+ *   E7  the daemon shuts down                                    → no decision
+ *
+ * E4 is how an answer given in the VS Code dialog is noticed: Claude Code leaves the hook call
+ * open then, but the session goes back to work. Holding a request never ends another one: one
+ * session can ask several things at once (parallel tool calls, subagents).
+ */
+export function createRequests({ now = Date.now, newId = randomUUID, graceMs = GRACE_MS, log = () => {} } = {}) {
+  const held = new Map(); // id → request, in the order they arrived
+
+  /** Takes the request out first, then tells Claude Code: a respond that throws (the socket is
+   *  gone) must neither keep the request nor stop the others. */
+  function end(id, ending, decision = null) {
+    const r = held.get(id);
+    if (!r) return false;
+    held.delete(id);
+    if (ending !== 'E6') {
+      try {
+        r.respond(decision);
+      } catch {
+        // nobody is listening any more
+      }
+    }
+    log({ ending, behavior: decision?.behavior ?? null, tool: r.tool, heldMs: now() - r.receivedAt, session: r.sessionId.slice(0, 8) });
+    return true;
+  }
+
+  return {
+    get size() {
+      return held.size;
+    },
+
+    hold(request, respond) {
+      const id = newId();
+      held.set(id, { ...request, id, receivedAt: now(), respond });
+      return id;
+    },
+
+    answer(sessionId, requestId, body) {
+      const r = held.get(requestId);
+      if (!r || r.sessionId !== sessionId) return { ok: false, status: 200, reason: say('requestGone') };
+      const verdict = decisionFor(r, body);
+      if (!verdict.ok) return { ok: false, status: 400, reason: verdict.reason };
+      end(requestId, 'E1', verdict.decision);
+      return { ok: true };
+    },
+
+    reconcile(snapshot) {
+      const states = new Map((snapshot?.sessions ?? []).map((s) => [s.id, s.state]));
+      let ended = 0;
+      for (const r of [...held.values()]) {
+        if (!states.has(r.sessionId)) ended += end(r.id, 'E3');
+        else if (states.get(r.sessionId) !== 'prompt' && now() - r.receivedAt > graceMs) ended += end(r.id, 'E4');
+      }
+      return ended;
+    },
+
+    endAll(ending) {
+      let ended = 0;
+      for (const id of [...held.keys()]) ended += end(id, ending);
+      return ended;
+    },
+
+    drop(id) {
+      end(id, 'E6');
+    },
+
+    listFor(sessionId) {
+      const out = [];
+      for (const r of held.values()) {
+        if (r.sessionId !== sessionId) continue;
+        out.unshift({
+          id: r.id, kind: r.kind, via: r.via, tool: r.tool, detail: r.detail, extras: r.extras,
+          questions: r.questions, since: new Date(r.receivedAt).toISOString(),
+        });
+      }
+      return out;
+    },
+  };
 }

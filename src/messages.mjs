@@ -16,6 +16,7 @@ const TEXT = {
     noDistro: () => 'No WSL distro known (config.wslDistro)',
     windowNotFound: () => 'Window not found: no VS Code window has the folder open',
     noWslview: () => 'wslview missing (package wslu)',
+    requestGone: () => 'This request is no longer open',
   },
   de: {
     noJump: () => 'Für diese Session gibt es keinen Sprung',
@@ -30,6 +31,7 @@ const TEXT = {
     noDistro: () => 'Keine WSL-Distro bekannt (config.wslDistro)',
     windowNotFound: () => 'Fenster nicht gefunden: der Ordner ist in keinem VS-Code-Fenster offen',
     noWslview: () => 'wslview fehlt (Paket wslu)',
+    requestGone: () => 'Diese Anfrage ist nicht mehr offen',
   },
 };
 
