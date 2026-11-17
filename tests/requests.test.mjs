@@ -140,7 +140,7 @@ test('the refusal for a request that is gone follows the language', async () => 
   }
 });
 
-test('E3: a session has to be missing for longer than the grace, and an unreadable registry says nothing', () => {
+test('E3: a session has to be missing for longer than the grace, whatever the reason', () => {
   const { s, clock, said, hold } = store();
   const id = hold(); // received at 1000
   clock.t = 50000;
@@ -156,13 +156,19 @@ test('E3: a session has to be missing for longer than the grace, and an unreadab
   assert.equal(s.reconcile(snap(null)), 1);
   assert.deepEqual(said.get(id), [null]);
 
-  // The registry could not be read at all: that says nothing about any session.
-  const kept = hold();
-  clock.t = 999999;
-  assert.equal(s.reconcile({ sources: { registry: false }, sessions: [] }), 0);
-  assert.equal(s.reconcile({ sources: { registry: false }, sessions: [] }), 0);
+  // A registry that could not be read lists nobody. A short spell of that is ridden out like
+  // any other absence. A long one is not: a run without a dialog must not wait for hours on a
+  // daemon that cannot see whether it still asks.
+  const unreadable = { sources: { registry: false }, sessions: [] };
+  const kept = hold(); // at 59002
+  clock.t = 60000;
+  assert.equal(s.reconcile(unreadable), 0);
+  clock.t = 63000;
+  assert.equal(s.reconcile(unreadable), 0);
   assert.deepEqual(said.get(kept), []);
-  assert.equal(s.size, 1);
+  clock.t = 63001;
+  assert.equal(s.reconcile(unreadable), 1);
+  assert.deepEqual(said.get(kept), [null]);
 });
 
 test('E4: reconcile ends requests whose session no longer asks', () => {

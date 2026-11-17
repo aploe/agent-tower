@@ -162,15 +162,15 @@ export function createRequests({ now = Date.now, newId = randomUUID, graceMs = G
     },
 
     reconcile(snapshot) {
-      // The registry could not be read: that says nothing about any session. Unknown is not gone.
-      if (snapshot?.sources?.registry === false) return 0;
       const rows = new Map((snapshot?.sessions ?? []).map((s) => [s.id, s]));
       let ended = 0;
       for (const r of [...held.values()]) {
         const row = rows.get(r.sessionId);
         if (!row) {
-          // One snapshot without the session can be a torn read of its registry file. Only an
-          // absence that lasts longer than the grace counts as gone.
+          // One snapshot without the session can be a torn read of its registry file, or a
+          // registry that could not be read at all. Only an absence that lasts longer than the
+          // grace counts as gone. It is not ridden out for longer either: a run without a
+          // dialog must not wait on a daemon that cannot see whether it still asks.
           r.missingSince ??= now();
           if (now() - r.missingSince > graceMs) ended += end(r.id, 'E3');
           continue;
