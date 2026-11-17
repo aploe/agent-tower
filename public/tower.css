@@ -364,6 +364,12 @@ button {
    selected option is marked without changing its size, so a pick does not move the block. */
 .request { cursor: default; }
 .request + .request { margin-top: 14px; }
+.request-origin {
+  margin-bottom: 5px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-faint);
+}
 .request-detail {
   max-height: 150px; /* about eight lines; a longer command scrolls inside */
   overflow-y: auto;

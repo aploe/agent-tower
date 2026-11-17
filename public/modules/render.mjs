@@ -186,9 +186,12 @@ function answerPill(label, { primary = false, disabled = false }, handlers, act)
 }
 
 /** The frame of one request: the page finds its position through data-request; a click
- *  inside it (to scroll or mark the command) does not open the detail view. */
+ *  inside it (to scroll or mark the command) does not open the detail view. A request raised
+ *  by a subagent says so above what it asks. */
 function requestFrame(request, ...children) {
-  const frame = h('div', { class: 'request', on: { click: (e) => e.stopPropagation() } }, ...children);
+  const frame = h('div', { class: 'request', on: { click: (e) => e.stopPropagation() } },
+    request.via === 'subagent' ? h('div', { class: 'request-origin' }, S.fromSubagent) : null,
+    ...children);
   frame.dataset.request = request.id;
   return frame;
 }

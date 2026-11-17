@@ -40,6 +40,7 @@ const EN = {
   allow: 'Allow',
   deny: 'Deny',
   send: 'Send',
+  fromSubagent: 'from a subagent',
 
   // hover texts of a step's marks
   stepDone: 'Done',
@@ -99,6 +100,7 @@ const DE = {
   allow: 'Erlauben',
   deny: 'Ablehnen',
   send: 'Senden',
+  fromSubagent: 'von einem Subagenten',
 
   stepDone: 'Fertig',
   stepError: 'Fehlgeschlagen oder abgebrochen',

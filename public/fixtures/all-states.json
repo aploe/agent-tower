@@ -302,7 +302,19 @@
       "dismissed": false,
       "host": "wsl",
       "opensIn": "vscode",
-      "hostSessionId": null
+      "hostSessionId": null,
+      "requests": [
+        {
+          "id": "5a1e9b6d-7f2c-4d8e-8b6a-2e8f6c7d9a06",
+          "kind": "permission",
+          "via": "subagent",
+          "tool": "Bash",
+          "detail": "flutter test test/series",
+          "extras": [],
+          "questions": null,
+          "since": "2026-11-16T11:59:20.000Z"
+        }
+      ]
     },
     {
       "id": "b8d5f3e2-6c4a-4f9b-8d7e-3a2f1c0b9e82",

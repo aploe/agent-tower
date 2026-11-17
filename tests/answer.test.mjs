@@ -101,4 +101,6 @@ test('the answer buttons and the setting have their words in both languages', ()
     'Answer permission prompts and questions right here. The dialog in VS Code keeps working.']);
   assert.deepEqual(pick(TABLES.de), ['Erlauben', 'Ablehnen', 'Senden', 'Im Widget antworten',
     'Freigaben und Fragen direkt hier beantworten. Der Dialog in VS Code bleibt nutzbar.']);
+  // A request raised by a subagent says so above what it asks.
+  assert.deepEqual([TABLES.en.fromSubagent, TABLES.de.fromSubagent], ['from a subagent', 'von einem Subagenten']);
 });
