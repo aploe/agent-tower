@@ -44,7 +44,19 @@
       "dismissed": false,
       "host": "wsl",
       "opensIn": "vscode",
-      "hostSessionId": null
+      "hostSessionId": null,
+      "requests": [
+        {
+          "id": "6b2f0c7e-8d3a-4e9b-9c7f-3f9a7e8b0c11",
+          "kind": "permission",
+          "via": "main",
+          "tool": "Bash",
+          "detail": "git push --force-with-lease",
+          "extras": [],
+          "questions": null,
+          "since": "2026-11-16T11:56:10.000Z"
+        }
+      ]
     },
     {
       "id": "e7bdfd40-76d7-42da-bce8-abaf0f094677",
@@ -86,7 +98,39 @@
       "dismissed": false,
       "host": "wsl",
       "opensIn": "vscode",
-      "hostSessionId": null
+      "hostSessionId": null,
+      "requests": [
+        {
+          "id": "7c3a1d8f-9e4b-4fac-8d80-4a0b8f9c1d22",
+          "kind": "question",
+          "via": "main",
+          "tool": "AskUserQuestion",
+          "detail": null,
+          "extras": [],
+          "questions": [
+            {
+              "question": "Should the export include archived invoices?",
+              "header": "Scope",
+              "multiSelect": false,
+              "options": [
+                {
+                  "label": "Only active invoices",
+                  "description": "What the accountant sees in the app today."
+                },
+                {
+                  "label": "Active and archived",
+                  "description": "One file with every invoice of the period."
+                },
+                {
+                  "label": "Let the user pick per export",
+                  "description": "A checkbox next to the export button."
+                }
+              ]
+            }
+          ],
+          "since": "2026-11-16T11:58:20.000Z"
+        }
+      ]
     },
     {
       "id": "a9ab3994-d93b-4f84-8bea-25510025d253",
