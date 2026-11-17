@@ -1,0 +1,313 @@
+{
+  "generatedAt": "2026-11-16T12:00:00.000Z",
+  "sources": {
+    "registry": true,
+    "colonyHook": true
+  },
+  "counts": {
+    "total": 15,
+    "prompt": 12,
+    "dismissed": 3
+  },
+  "sessions": [
+    {
+      "id": "3d061e29-bb06-4f86-8c5c-e001df352117",
+      "pid": 25622,
+      "cwd": "/home/dev/vereinsblog",
+      "project": "vereinsblog",
+      "title": "PHP-Upgrade für Block und Hauptseite",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "prompt",
+      "stateSince": "2026-11-16T11:58:00.000Z",
+      "stateSource": "registry",
+      "ask": {
+        "kind": "permission",
+        "certain": true,
+        "via": "main",
+        "tool": "Bash",
+        "summary": "rm -rf scratchpad/php-upgrade/tmp",
+        "questions": null
+      },
+      "current": {
+        "tool": "Bash",
+        "label": "Remove temp folder",
+        "since": "2026-11-16T11:58:00.000Z"
+      },
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "3b2be2e2-6344-452b-8592-711b6d4b6060",
+      "pid": 25147,
+      "cwd": "/home/dev/rezepte-app",
+      "project": "rezepte-app",
+      "title": "Rezept-Formular neu",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "prompt",
+      "stateSince": "2026-11-16T11:54:00.000Z",
+      "stateSource": "transcript",
+      "ask": {
+        "kind": "question",
+        "certain": true,
+        "via": "main",
+        "tool": "AskUserQuestion",
+        "summary": "Soll „Mehr Angaben“ das Rezept erst speichern oder einen ungespeicherten Entwurf öffnen?",
+        "questions": [
+          {
+            "question": "Soll „Mehr Angaben“ das Rezept erst speichern oder einen ungespeicherten Entwurf öffnen?",
+            "header": "Entwurf",
+            "options": [
+              "Erst speichern, dann öffnen",
+              "Ungespeicherter Entwurf",
+              "Später entscheiden"
+            ],
+            "multiSelect": false
+          }
+        ]
+      },
+      "current": {
+        "tool": "AskUserQuestion",
+        "label": "AskUserQuestion",
+        "since": "2026-11-16T11:54:00.000Z"
+      },
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "6f1fa906-d7fd-4277-8e98-d3ba89972f46",
+      "pid": 38447,
+      "cwd": "/home/dev/websites",
+      "project": "websites",
+      "title": "Staging-Deploy der Website",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "prompt",
+      "stateSince": "2026-11-16T11:58:30.000Z",
+      "stateSource": "transcript",
+      "ask": {
+        "kind": "permission",
+        "certain": false,
+        "via": "main",
+        "tool": "Bash",
+        "summary": "./deploy.sh staging",
+        "questions": null
+      },
+      "current": {
+        "tool": "Bash",
+        "label": "Deploy to staging",
+        "since": "2026-11-16T11:58:30.000Z"
+      },
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "4a78d263-f34e-4c39-8047-1127cd186891",
+      "pid": 29064,
+      "cwd": "/home/dev/budget-app",
+      "project": "budget-app",
+      "title": "Plan 6b umsetzen",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "prompt",
+      "stateSince": "2026-11-16T11:59:20.000Z",
+      "stateSource": "registry",
+      "ask": {
+        "kind": "permission",
+        "certain": true,
+        "via": "subagent",
+        "tool": "Bash",
+        "summary": "flutter test test/series",
+        "questions": null
+      },
+      "current": {
+        "tool": "Agent",
+        "label": "Implement Task 8",
+        "since": "2026-11-16T11:51:00.000Z"
+      },
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "46170bda-650c-41bf-8752-a110f19be687",
+      "pid": 27943,
+      "cwd": "/home/dev/home-assistant",
+      "project": "home-assistant",
+      "title": "Thread-Ausfall eingrenzen",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "working",
+      "stateSince": "2026-11-16T11:57:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": {
+        "tool": "Bash",
+        "label": "Record the radio link for 12 h",
+        "since": "2026-11-16T11:57:00.000Z"
+      },
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "12764094-5e6d-4c5d-82ab-1bc2855c896c",
+      "pid": 14726,
+      "cwd": "/home/dev/agent-tower",
+      "project": "agent-tower",
+      "title": "Agent Tower Stufe 1",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "working",
+      "stateSince": "2026-11-16T11:59:40.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "9b002aac-96a3-4b39-85d8-7f4df1b135c8",
+      "pid": 49680,
+      "cwd": "/home/dev/rezepte-app",
+      "project": "rezepte-app",
+      "title": "(A) iOS-App-Entwicklung ohne Mac",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "waiting",
+      "stateSince": "2026-11-16T11:48:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "981e2f75-2b9f-4fd9-8a0c-cdbb0112caa9",
+      "pid": 48942,
+      "cwd": "/home/dev/portfolio",
+      "project": "portfolio",
+      "title": "Portfolio-Seite",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "waiting",
+      "stateSince": "2026-11-16T11:13:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "252f2c34-c88a-46a1-83fb-0cfc588808bf",
+      "pid": 19519,
+      "cwd": "/home/dev/vereinsblog",
+      "project": "vereinsblog",
+      "title": "Plugin-Updates einspielen",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "idle",
+      "stateSince": "2026-11-16T07:00:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "03edcaa3-38ab-4cd5-854a-addafbe83635",
+      "pid": 11005,
+      "cwd": "/home/dev/home-assistant",
+      "project": "home-assistant",
+      "title": "Waschmaschine überwachen",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "idle",
+      "stateSince": "2026-11-16T06:00:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "5d2f8ae2-8cda-4695-85f4-25706af5df93",
+      "pid": 33855,
+      "cwd": "/home/dev/dotfiles",
+      "project": "dotfiles",
+      "title": "(A) Persönlicher Design Skill für Claude",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "idle",
+      "stateSince": "2026-11-15T13:00:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "becaba39-537b-4a40-8a3f-2b32ae19ab30",
+      "pid": 58842,
+      "cwd": "/home/dev/websites",
+      "project": "websites",
+      "title": "Backup-Fehler eingrenzen",
+      "entrypoint": "sdk-cli",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "idle",
+      "stateSince": "2026-11-15T10:00:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": false,
+      "dismissed": false
+    },
+    {
+      "id": "c5050395-6a59-470d-8be0-f681d6fb3958",
+      "pid": 10437,
+      "cwd": "/home/dev/vereinsblog",
+      "project": "vereinsblog",
+      "title": "Kontaktformular prüfen",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "idle",
+      "stateSince": "2026-11-14T12:00:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "fd071cda-a2fc-4a2e-8b44-f64cea4df684",
+      "pid": 24775,
+      "cwd": "/home/dev/rezepte-app",
+      "project": "rezepte-app",
+      "title": "(A) Improve codebase architecture",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "idle",
+      "stateSince": "2026-11-13T12:00:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "8af7b1d8-2de3-4f97-83b5-8ded8c1f0dfa",
+      "pid": 45575,
+      "cwd": "/home/dev/vereinsblog",
+      "project": "vereinsblog",
+      "title": "Blogstruktur",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "waiting",
+      "stateSince": "2026-11-16T11:35:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": true
+    }
+  ]
+}

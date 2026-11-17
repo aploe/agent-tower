@@ -1,0 +1,56 @@
+{
+  "steps": [
+    {
+      "tool": "Read",
+      "label": "otbr-agent.log",
+      "status": "done",
+      "at": "2026-11-16T11:46:00.000Z"
+    },
+    {
+      "tool": "Grep",
+      "label": "channel 16",
+      "status": "done",
+      "at": "2026-11-16T11:47:00.000Z"
+    },
+    {
+      "tool": "Bash",
+      "label": "List Thread neighbours",
+      "status": "error",
+      "at": "2026-11-16T11:48:00.000Z"
+    },
+    {
+      "tool": "Bash",
+      "label": "List Thread neighbours with sudo",
+      "status": "done",
+      "at": "2026-11-16T11:49:00.000Z"
+    },
+    {
+      "tool": "Edit",
+      "label": "thread-probe.yaml",
+      "status": "done",
+      "at": "2026-11-16T11:51:00.000Z"
+    },
+    {
+      "tool": "Agent",
+      "label": "Compare against the key-rotation theory",
+      "status": "done",
+      "at": "2026-11-16T11:53:00.000Z"
+    },
+    {
+      "tool": "Write",
+      "label": "P1-radio.md",
+      "status": "done",
+      "at": "2026-11-16T11:56:00.000Z"
+    },
+    {
+      "tool": "Bash",
+      "label": "Record the radio link for 12 h",
+      "status": "running",
+      "at": "2026-11-16T11:57:00.000Z"
+    }
+  ],
+  "terminal": {
+    "command": "ha-radio-log --duration 12h --out scratchpad/thread/radio.log",
+    "lastLine": "listening on channel 16 · 1.204 frames"
+  }
+}

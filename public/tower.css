@@ -1,0 +1,598 @@
+/* Agent Tower widget. Look: spec §8.1 (the reel's widget), own figure, German labels. */
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: block;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fonts/JetBrainsMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* surfaces: the higher the layer, the lighter */
+  --panel: oklch(0.205 0.004 286);
+  --card: oklch(0.255 0.004 286);
+  --inset: oklch(0.31 0.004 286);
+  --option: oklch(0.355 0.004 286);
+  --well: oklch(0.175 0.004 286);
+  --pill: oklch(0.37 0.004 286);
+  --pill-hover: oklch(0.42 0.004 286);
+  --card-hover: oklch(0.285 0.004 286);
+  --line: rgb(255 255 255 / 0.08);
+
+  /* text */
+  --text: oklch(0.97 0.002 286);
+  --text-dim: oklch(0.74 0.006 286);
+  --text-faint: oklch(0.64 0.006 286);
+
+  /* the one loud colour */
+  --accent: #d4f53c;
+  --accent-dim: oklch(0.74 0.06 120);
+  --on-accent: oklch(0.2 0.02 122);
+  --danger: oklch(0.68 0.17 25);
+
+  /* figure hues: HUE_COUNT in figure.mjs. 22° apart on the arc that leaves out the lime,
+     lightness alternating so neighbours stay apart; chroma cut to what sRGB can show. */
+  --hue-0: oklch(0.68 0.135 168);
+  --hue-1: oklch(0.78 0.13 191);
+  --hue-2: oklch(0.68 0.12 215);
+  --hue-3: oklch(0.78 0.125 238);
+  --hue-4: oklch(0.68 0.15 262);
+  --hue-5: oklch(0.78 0.115 285);
+  --hue-6: oklch(0.68 0.15 309);
+  --hue-7: oklch(0.78 0.15 332);
+  --hue-8: oklch(0.68 0.15 356);
+  --hue-9: oklch(0.78 0.125 19);
+  --hue-10: oklch(0.68 0.15 43);
+  --hue-11: oklch(0.78 0.15 66);
+  --eye: oklch(0.2 0.01 286);
+
+  /* shape */
+  --pad: 8px;
+  --r-card: 12px;
+  --r-inset: calc(var(--r-card) - var(--pad) + 2px);
+
+  --font: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+/* The widget window is exactly as wide as the panel: a scrollbar would take its width away. */
+html { scrollbar-width: none; }
+
+html, body {
+  margin: 0;
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* The shell's window decides the width (400); in a browser tab the panel stops at the same value. */
+.panel {
+  width: 100%;
+  max-width: 400px;
+  padding: 0 var(--pad) var(--pad);
+}
+
+/* ---------- header ---------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  height: 44px;
+  padding: 0 4px 0 6px;
+  user-select: none;
+}
+.header, .detail-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel);
+}
+.header .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+.header.is-offline .dot { background: var(--text-faint); }
+.header.is-offline .count, .header.is-offline .asking { opacity: 0.45; }
+/* When the header gets tight the information gives way, never the window buttons (.nav):
+   first the name, then the asking text; both end in an ellipsis. */
+.header .name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header .count {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-faint);
+  flex: none;
+}
+.header .asking {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header .nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.header .spacer { flex: 1; min-width: 4px; }
+.header .hidden-toggle {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 4px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.header .hidden-toggle::after { content: ''; position: absolute; inset: -3px -4px; }
+.header .hidden-toggle svg { width: 16px; height: 16px; }
+.header .hidden-toggle:hover,
+.header .hidden-toggle.is-on { color: var(--text); background: var(--card); }
+
+.icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--text-dim);
+}
+.icon-btn::after { content: ''; position: absolute; inset: -3px -6px; }
+.icon-btn:hover { color: var(--text); background: rgb(255 255 255 / 0.06); }
+.icon-btn svg { width: 18px; height: 18px; }
+
+/* daemon silent: say so, and dim what may be out of date */
+.banner {
+  margin-bottom: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.is-stale { opacity: 0.45; }
+
+/* ---------- list ---------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 26px;
+  column-gap: 10px;
+  align-items: center;
+  padding: 10px 8px 10px 6px;
+  background: var(--card);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-card);
+  cursor: pointer;
+}
+.card.is-ask { border-color: var(--accent); }
+.card.is-ask-weak { border-color: var(--accent-dim); border-style: dashed; }
+.card.is-dismissed { opacity: 0.55; }
+
+.fig-cell { display: grid; place-items: center; }
+.icon-spacer { width: 26px; height: 26px; }
+.detail-ask .ask { margin-top: 12px; }
+
+.lines { min-width: 0; }
+.title {
+  font-size: 14.5px;
+  font-weight: 750;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.state-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* working: a lime spinner; finished: a dot, lime while VS Code marks the session unread, in the
+   text's grey once it was looked at. --phase-spin keeps the turn across page rebuilds. */
+.state-spin { flex: none; width: 12px; height: 12px; }
+.state-spin svg { display: block; width: 12px; height: 12px; animation: spin 1.1s linear var(--phase-spin, 0s) infinite; }
+.state-spin .track { stroke: color-mix(in oklab, var(--accent) 22%, transparent); }
+.state-spin .arc { stroke: var(--accent); }
+.state-dot { flex: none; width: 7px; height: 7px; margin: 0 2.5px; border-radius: 50%; background: var(--text-dim); }
+.state-dot.is-unread { background: var(--accent); }
+.state.tone-ask { color: var(--accent); font-weight: 700; }
+.state.tone-askWeak { color: var(--accent-dim); font-weight: 650; }
+.meta {
+  margin-top: 3px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ask block below the three lines */
+.ask {
+  grid-column: 2 / 4;
+  margin-top: 9px;
+  min-width: 0;
+}
+.ask .command {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ask .command .tool { color: var(--text-faint); }
+.ask .question-box {
+  padding: 10px;
+  background: var(--inset);
+  border-radius: var(--r-inset);
+}
+.chip {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.question {
+  margin: 7px 0 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+/* Stage 1 answers in VS Code only (design 8.2): the options are plain lines, nothing that
+   looks like a control. */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.options li {
+  display: flex;
+  gap: 7px;
+}
+.options li::before {
+  content: '–';
+  flex: none;
+  color: var(--text-faint);
+}
+
+.pills { display: flex; gap: 6px; margin-top: 9px; }
+.pill {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--pill);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.pill:hover { background: var(--pill-hover); }
+
+/* single-line rows for idle sessions */
+.line-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto 26px 26px;
+  align-items: center;
+  column-gap: 8px;
+  height: 32px;
+  padding: 0 4px 0 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.line-row:hover { background: var(--card); }
+.line-row.is-dismissed { opacity: 0.55; }
+.line-row .title {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-dim);
+}
+.line-row .time {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.line-row .icon-btn svg { width: 16px; height: 16px; }
+
+.reason {
+  grid-column: 2 / 4;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.empty {
+  padding: 22px 12px;
+  text-align: center;
+  color: var(--text-dim);
+  background: var(--card);
+  border-radius: var(--r-card);
+}
+
+/* ---------- figure ---------- */
+
+.figure { display: block; overflow: visible; }
+.figure .body { fill: var(--fig); }
+.figure .eye { fill: var(--eye); }
+.figure .mouth, .face .mouth { fill: none; stroke: var(--eye); stroke-width: 2.4; stroke-linecap: round; }
+.face .mouth { stroke-width: 1.5; }
+.figure .shadow { fill: rgb(0 0 0 / 0.35); }
+/* --phase-*: set at every render, keeps the phase across the rebuild of the page */
+.figure.is-working .float { animation: float 3s ease-in-out var(--phase-float, 0s) infinite alternate; }
+.figure.is-working .shadow { animation: shadow 3s ease-in-out var(--phase-float, 0s) infinite alternate; transform-origin: 50% 100%; transform-box: fill-box; }
+@keyframes float { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+@keyframes shadow { from { transform: scaleX(1); } to { transform: scaleX(0.85); opacity: 0.7; } }
+
+/* ---------- detail view ---------- */
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 4px 0 2px;
+}
+.faces {
+  display: flex;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+  padding: 4px;
+  -webkit-mask: linear-gradient(90deg, black calc(100% - 28px), transparent);
+  mask: linear-gradient(90deg, black calc(100% - 28px), transparent);
+}
+.face {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 20px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--fig);
+}
+.face svg { width: 14px; height: 12px; }
+.face.is-ask { outline: 1.5px solid var(--accent); outline-offset: 1.5px; }
+
+.detail-card {
+  padding: 12px 12px 12px;
+  background: var(--card);
+  border-radius: var(--r-card);
+}
+.detail-card.is-ask { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.detail-top {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: center;
+}
+.detail-top .title { font-size: 16px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+.divider { height: 1px; background: var(--line); margin: 12px 0 8px; }
+
+.steps { margin: 0; padding: 0; list-style: none; }
+.step {
+  display: grid;
+  grid-template-columns: 18px 18px minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: center;
+  height: 27px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+.step .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step.is-running .label { color: var(--text); font-weight: 650; }
+.step.is-error .label { color: var(--text-dim); }
+.step .mark svg, .step .tool svg { width: 16px; height: 16px; display: block; }
+.step .tool { color: var(--text-faint); }
+.step.is-running .tool { color: var(--text-dim); }
+.mark.done { color: var(--text-faint); }
+.mark.error { color: var(--danger); }
+.mark.running svg { animation: spin 1.1s linear var(--phase-spin, 0s) infinite; color: var(--text); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.no-steps { padding: 6px 0; color: var(--text-faint); }
+
+.terminal {
+  margin-top: 10px;
+  padding: 9px 10px 10px;
+  background: var(--well);
+  border-radius: var(--r-inset);
+  font-family: var(--mono);
+  font-size: 12px;
+  min-width: 0;
+}
+.terminal .tchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 12px;
+}
+.terminal .tchip svg { width: 14px; height: 14px; color: var(--accent); }
+.terminal .cmd {
+  margin-top: 9px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.terminal .out {
+  margin-top: 6px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- settings view ---------- */
+
+.settings-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.detail-header .spacer { flex: 1; }
+.detail-header .settings-title { margin-left: 2px; }
+
+.settings-card {
+  padding: 8px;
+  background: var(--card);
+  border-radius: var(--r-card);
+}
+.settings-card .divider { margin: 8px 4px; }
+.setting .row-label { font-size: 14px; font-weight: 650; }
+.setting .reason { margin: 0; padding: 0 12px 8px; }
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--r-inset);
+  text-align: left;
+}
+.switch-row:hover:not(:disabled) { background: var(--card-hover); }
+.switch-row:disabled { cursor: default; }
+.switch-row:disabled .row-label { color: var(--text-faint); }
+
+/* a pill in a pill: the knob sits 3px inside the track */
+.switch {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--pill);
+}
+.switch-row:disabled .switch { opacity: 0.45; }
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--text-dim);
+}
+.switch-row.is-on .switch { background: var(--accent); }
+.switch-row.is-on .knob { background: var(--on-accent); transform: translateX(16px); }
+/* The page is rebuilt on every render, so a transition could never run; tower.js marks the one
+   render right after a flip and this plays the slide into the end state. */
+.switch-row.slide-on .knob { animation: knob-on 150ms ease-out; }
+.switch-row.slide-off .knob { animation: knob-off 150ms ease-out; }
+@keyframes knob-on { from { transform: translateX(0); } to { transform: translateX(16px); } }
+@keyframes knob-off { from { transform: translateX(16px); } to { transform: translateX(0); } }
+
+.setting.idle { padding: 4px 12px 8px; }
+.setting.idle .reason { padding: 6px 0 0; }
+.setting.idle .hint {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.choices { display: flex; gap: 6px; margin-top: 10px; }
+.choice {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 30px;
+  border-radius: var(--r-inset);
+  background: var(--inset);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.choice:hover:not(:disabled):not(.is-on) { background: var(--option); }
+.choice.is-on { background: var(--accent); color: var(--on-accent); font-weight: 800; }
+.choice:disabled { opacity: 0.45; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .switch .knob { animation: none !important; }
+  .figure.is-working .float,
+  .figure.is-working .shadow,
+  .mark.running svg,
+  .state-spin svg { animation: none; }
+}

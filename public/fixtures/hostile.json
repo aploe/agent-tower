@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-11-16T12:00:00.000Z",
+  "sources": {
+    "registry": true,
+    "colonyHook": true
+  },
+  "counts": {
+    "total": 3,
+    "prompt": 2,
+    "working": 0,
+    "waiting": 1,
+    "idle": 0,
+    "dismissed": 0
+  },
+  "sessions": [
+    {
+      "id": "6546c01c-8a9c-4a8d-8c88-bc8b9c4e8f77",
+      "pid": 35926,
+      "cwd": "/home/dev/<b>proj</b>",
+      "project": "<b>proj</b>",
+      "title": "<img src=x onerror=\"window.__pwned=1\">",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "prompt",
+      "stateSince": "2026-11-16T11:58:50.000Z",
+      "stateSource": "registry",
+      "ask": {
+        "kind": "permission",
+        "certain": true,
+        "via": "main",
+        "tool": "Bash",
+        "summary": "</script><script>window.__pwned=1</script>",
+        "questions": null
+      },
+      "current": {
+        "tool": "Bash",
+        "label": "<script>window.__pwned=1</script>",
+        "since": "2026-11-16T11:58:50.000Z"
+      },
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "d3e4477b-395a-4260-8647-0b071b6d306e",
+      "pid": 14244,
+      "cwd": "/home/dev/agent-tower",
+      "project": "agent-tower",
+      "title": "Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer Titel Sehr langer ",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "waiting",
+      "stateSince": "2026-11-16T11:57:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    },
+    {
+      "id": "1f4da5ae-acbb-4d7a-8213-3e93e649fcfc",
+      "pid": 18013,
+      "cwd": "/home/dev/agent-tower",
+      "project": "agent-tower",
+      "title": "Frage mit Markup",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "prompt",
+      "stateSince": "2026-11-16T11:59:30.000Z",
+      "stateSource": "registry",
+      "ask": {
+        "kind": "question",
+        "certain": true,
+        "via": "main",
+        "tool": "AskUserQuestion",
+        "summary": "<i>kursiv?</i>",
+        "questions": [
+          {
+            "question": "<i>kursiv?</i>",
+            "header": "<u>H</u>",
+            "options": [
+              "<b>A</b>",
+              "\"B\" & 'C'"
+            ],
+            "multiSelect": false
+          }
+        ]
+      },
+      "current": null,
+      "canOpen": true,
+      "dismissed": false
+    }
+  ]
+}

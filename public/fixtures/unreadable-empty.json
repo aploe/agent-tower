@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-11-16T12:00:00.000Z",
+  "sources": {
+    "registry": false,
+    "colonyHook": true,
+    "windows": false,
+    "vscodeUnread": true
+  },
+  "counts": {
+    "total": 0,
+    "prompt": 0,
+    "working": 0,
+    "waiting": 0,
+    "idle": 0,
+    "dismissed": 0
+  },
+  "sessions": []
+}

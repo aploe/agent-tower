@@ -1,0 +1,15 @@
+{
+  "name": "agent-tower",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "PATH=\"$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH\" node src/server.mjs",
+    "collect": "PATH=\"$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH\" node src/collect.mjs --print",
+    "test": "PATH=\"$HOME/.nvm/versions/node/$(cat .nvmrc)/bin:$PATH\" node --test tests/*.test.mjs"
+  }
+}

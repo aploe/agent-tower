@@ -1,0 +1,114 @@
+{
+  "generatedAt": "2026-11-16T12:00:00.000Z",
+  "sources": {
+    "registry": true,
+    "colonyHook": true,
+    "windows": false,
+    "vscodeUnread": true
+  },
+  "counts": {
+    "total": 4,
+    "prompt": 1,
+    "working": 1,
+    "waiting": 1,
+    "idle": 1,
+    "dismissed": 0
+  },
+  "sessions": [
+    {
+      "id": "3d061e29-bb06-4f86-8c5c-e001df352117",
+      "pid": 25622,
+      "cwd": "/home/dev/vereinsblog",
+      "project": "vereinsblog",
+      "title": "PHP-Upgrade für Block und Hauptseite",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "prompt",
+      "stateSince": "2026-11-16T11:58:00.000Z",
+      "stateSource": "registry",
+      "ask": {
+        "kind": "permission",
+        "certain": true,
+        "via": "main",
+        "tool": "Bash",
+        "summary": "rm -rf scratchpad/php-upgrade/tmp",
+        "questions": null
+      },
+      "current": {
+        "tool": "Bash",
+        "label": "Remove temp folder",
+        "since": "2026-11-16T11:58:00.000Z"
+      },
+      "canOpen": true,
+      "unread": false,
+      "dismissed": false,
+      "host": "wsl",
+      "opensIn": "vscode",
+      "hostSessionId": null
+    },
+    {
+      "id": "46170bda-650c-41bf-8752-a110f19be687",
+      "pid": 27943,
+      "cwd": "/home/dev/home-assistant",
+      "project": "home-assistant",
+      "title": "Thread-Ausfall eingrenzen",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "working",
+      "stateSince": "2026-11-16T11:57:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": {
+        "tool": "Bash",
+        "label": "Record the radio link for 12 h",
+        "since": "2026-11-16T11:57:00.000Z"
+      },
+      "canOpen": true,
+      "unread": false,
+      "dismissed": false,
+      "host": "wsl",
+      "opensIn": "vscode",
+      "hostSessionId": null
+    },
+    {
+      "id": "9b002aac-96a3-4b39-85d8-7f4df1b135c8",
+      "pid": 49680,
+      "cwd": "/home/dev/rezepte-app",
+      "project": "rezepte-app",
+      "title": "(A) iOS-App-Entwicklung ohne Mac",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "waiting",
+      "stateSince": "2026-11-16T11:48:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "unread": true,
+      "dismissed": false,
+      "host": "wsl",
+      "opensIn": "vscode",
+      "hostSessionId": null
+    },
+    {
+      "id": "252f2c34-c88a-46a1-83fb-0cfc588808bf",
+      "pid": 19519,
+      "cwd": "/home/dev/vereinsblog",
+      "project": "vereinsblog",
+      "title": "Plugin-Updates einspielen",
+      "entrypoint": "claude-vscode",
+      "startedAt": "2026-11-16T07:00:00.000Z",
+      "state": "idle",
+      "stateSince": "2026-11-16T07:00:00.000Z",
+      "stateSource": "registry",
+      "ask": null,
+      "current": null,
+      "canOpen": true,
+      "unread": false,
+      "dismissed": false,
+      "host": "wsl",
+      "opensIn": "vscode",
+      "hostSessionId": null
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+<Window x:Class="AgentTower.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="Agent Tower"
+        Width="400" Height="54"
+        WindowStyle="None" ResizeMode="NoResize"
+        ShowInTaskbar="False" Topmost="True" ShowActivated="False"
+        WindowStartupLocation="Manual"
+        Background="#171719"
+        UseLayoutRounding="True">
+    <!-- One pixel around the page that the window draws itself: the system's border while it
+         floats, own lines on the free sides and the window colour on the docked ones. -->
+    <Border x:Name="Frame" Background="#171719" BorderBrush="#444441" BorderThickness="0" Padding="1">
+        <wv2:WebView2 x:Name="Web" />
+    </Border>
+</Window>

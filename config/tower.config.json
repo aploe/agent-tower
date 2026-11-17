@@ -1,0 +1,15 @@
+{
+  "host": "127.0.0.1",
+  "port": 4188,
+  "pollMs": 1000,
+  "idleAfterMinutes": 240,
+  "promptAfterSeconds": 60,
+  "claudeDir": "~/.claude",
+  "windowsClaudeDir": null,
+  "vscodeStateDb": null,
+  "colonyHookDir": null,
+  "stateDir": null,
+  "vscodeCli": null,
+  "wslDistro": null,
+  "fallback": { "workingMinutes": 3, "promptMinutes": 1, "waitingMinutes": 90 }
+}

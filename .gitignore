@@ -1,0 +1,24 @@
+# working files: reel stills, screenshots, probe output, drafts
+scratchpad/
+
+# machine-specific config
+config/tower.local.json
+
+# Node
+node_modules/
+*.log
+
+# .NET build output
+shell/bin/
+shell/obj/
+shell.Tests/bin/
+shell.Tests/obj/
+
+# worktrees and local tool state
+.worktrees/
+.superpowers/
+.handoffs/
+CLAUDE.local.md
+
+# specs and plans stay local (repo is public)
+docs/superpowers/
