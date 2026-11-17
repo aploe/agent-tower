@@ -3,6 +3,7 @@
   "port": 4188,
   "pollMs": 1000,
   "idleAfterMinutes": 240,
+  "language": "en",
   "promptAfterSeconds": 60,
   "claudeDir": "~/.claude",
   "windowsClaudeDir": null,

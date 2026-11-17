@@ -3,16 +3,35 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { KEYS, defaultsOf, loadSettings, validatePatch, updateSettings } from '../src/settings.mjs';
+import { KEYS, defaultsOf, limitsOf, loadSettings, validatePatch, updateSettings } from '../src/settings.mjs';
 
 async function tmpState() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tower-settings-'));
   return { root, cfg: { stateDir: path.join(root, 'nested', 'state') } };
 }
 
-test('KEYS and defaultsOf', () => {
-  assert.deepEqual(KEYS, { idleAfterMinutes: { min: 5, max: 1440 } });
-  assert.deepEqual(defaultsOf({ idleAfterMinutes: 240, pollMs: 500 }), { idleAfterMinutes: 240 });
+test('KEYS, defaultsOf and limitsOf', () => {
+  assert.deepEqual(KEYS, {
+    idleAfterMinutes: { min: 5, max: 1440 },
+    language: { values: ['en', 'de'], fallback: 'en' },
+  });
+  assert.deepEqual(defaultsOf({ idleAfterMinutes: 240, language: 'de', pollMs: 500 }), { idleAfterMinutes: 240, language: 'de' });
+  assert.deepEqual(limitsOf(), { idleAfterMinutes: { min: 5, max: 1440 }, language: { values: ['en', 'de'] } });
+});
+
+test('defaultsOf: a missing or unknown language in the config falls back to English', () => {
+  assert.equal(defaultsOf({ idleAfterMinutes: 240 }).language, 'en');
+  assert.equal(defaultsOf({ idleAfterMinutes: 240, language: 'fr' }).language, 'en');
+});
+
+test('validatePatch accepts a known language and null, nothing else', () => {
+  assert.deepEqual(validatePatch({ language: 'de' }), { ok: true, patch: { language: 'de' } });
+  assert.deepEqual(validatePatch({ language: null }), { ok: true, patch: { language: null } });
+  for (const language of ['fr', 'DE', '', 1, true, ['de']]) {
+    const v = validatePatch({ language });
+    assert.equal(v.ok, false, JSON.stringify(language));
+    assert.equal(v.reason, 'language must be one of en, de');
+  }
 });
 
 test('validatePatch accepts a known integer in range and null', () => {
@@ -44,6 +63,8 @@ test('loadSettings: missing, damaged and foreign content give no overrides', asy
       ['[1,2]', {}],
       ['{"idleAfterMinutes":0,"pollMs":1}', {}],
       ['{"idleAfterMinutes":120,"x":1}', { idleAfterMinutes: 120 }],
+      ['{"language":"de"}', { language: 'de' }],
+      ['{"language":"klingon","idleAfterMinutes":60}', { idleAfterMinutes: 60 }],
     ];
     for (const [text, expected] of cases) {
       await fs.writeFile(file, text);

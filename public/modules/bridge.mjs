@@ -20,6 +20,8 @@ export function createBridge(webview = globalThis.chrome?.webview) {
     hide: () => send({ type: 'hide' }),
     /** How many sessions ask right now; the shell marks its tray icon. */
     attention: (count) => send({ type: 'attention', count }),
+    /** The language the page shows ('en' | 'de'); the shell uses it for its tray menu and own pages. */
+    language: (code) => send({ type: 'language', code }),
     /** Asks for the shell's options ({}), or sets some of them ({ autostart, topmost }). */
     options: (patch = {}) => send({ type: 'options', ...patch }),
     /**

@@ -56,7 +56,7 @@ Run this in WSL:
 
 It publishes the shell to `%LOCALAPPDATA%\AgentTower\app\`, writes `settings.json` one folder up if there is none yet, and puts "Agent Tower" into the Start Menu. With `--test` it runs the shell's unit tests first. The app has to be closed while it is rebuilt (tray icon, "Quit"); the script says so when the exe is still in use.
 
-Start the app from the Start Menu. It checks whether the daemon answers and starts it if not. The header's X hides the window, a left click on the tray icon brings it back. The gear in the header opens the settings: start with Windows, always on top, and after how long a finished session moves to the slim rows.
+Start the app from the Start Menu. It checks whether the daemon answers and starts it if not. The header's X hides the window, a left click on the tray icon brings it back. The gear in the header opens the settings: start with Windows, always on top, after how long a finished session moves to the slim rows, and the language (English or German).
 
 ## The daemon by hand
 
@@ -71,7 +71,7 @@ The daemon writes its log to `/tmp/agent-tower.log`, and the page opens in any b
 
 | What | Where |
 |------|-------|
-| Shell settings: `distro`, `repoPath`, `port`, `topmost` | `%LOCALAPPDATA%\AgentTower\settings.json` |
+| Shell settings: `distro`, `repoPath`, `port`, `topmost`, `language` | `%LOCALAPPDATA%\AgentTower\settings.json` |
 | Window position | `%LOCALAPPDATA%\AgentTower\window.json` |
 | WebView2 profile | `%LOCALAPPDATA%\AgentTower\WebView2\` |
 | Hidden rows | `~/.local/state/agent-tower/dismissed.json`, or under `$XDG_STATE_HOME` if that is set |

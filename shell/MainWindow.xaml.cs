@@ -35,6 +35,11 @@ public partial class MainWindow : Window
     /// <summary>"Always on top" changed, from the page or the tray (so the tray's check mark can follow).</summary>
     public event Action<bool>? TopmostChanged;
 
+    /// <summary>The page switched its language (so the tray can follow).</summary>
+    public event Action<ShellText>? TextChanged;
+
+    private ShellText Texts => ShellText.For(_settings.Language);
+
     private string Origin => $"http://127.0.0.1:{_settings.Port}";
 
     // The window keeps one horizontal edge in place when its height changes: the bottom edge
@@ -106,6 +111,23 @@ public partial class MainWindow : Window
     }
 
     private string SettingsPath => Path.Combine(_dataDir, "settings.json");
+
+    /// <summary>Remembers the page's language for the next start (the pages shown before the
+    /// daemon's page need it) and tells the tray. Only a real change touches the file.</summary>
+    private void SetLanguage(string code)
+    {
+        if (_settings.Language == code) return;
+        _settings = _settings with { Language = code };
+        try
+        {
+            _settings.Save(SettingsPath);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // The tray already follows; only the next start would use the old language.
+        }
+        TextChanged?.Invoke(Texts);
+    }
 
     /// <summary>Tells the page the real state, not the one it asked for.</summary>
     private void PostOptions()
@@ -299,7 +321,7 @@ public partial class MainWindow : Window
         catch (Exception e)
         {
             MessageBox.Show(
-                "The Microsoft Edge WebView2 runtime could not be started.\n\n" + e.Message,
+                Texts.WebViewFailed + "\n\n" + e.Message,
                 "Agent Tower", MessageBoxButton.OK, MessageBoxImage.Error);
             Close();
             return;
@@ -325,7 +347,7 @@ public partial class MainWindow : Window
             if (!e.IsSuccess && !_local && !_connecting
                 && e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled)
             {
-                ShowLocal(ErrorPage.Html(DaemonLauncher.CommandLine(_settings)));
+                ShowLocal(ErrorPage.Html(DaemonLauncher.CommandLine(_settings), Texts));
             }
         };
         await ConnectAsync(restart: false);
@@ -346,7 +368,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                ShowLocal(ErrorPage.Starting());
+                ShowLocal(ErrorPage.Starting(Texts));
                 ok = restart
                     ? await DaemonLauncher.RestartAsync(_settings, CancellationToken.None)
                     : await DaemonLauncher.EnsureAsync(_settings, CancellationToken.None);
@@ -359,7 +381,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                ShowLocal(ErrorPage.Html(DaemonLauncher.CommandLine(_settings)));
+                ShowLocal(ErrorPage.Html(DaemonLauncher.CommandLine(_settings), Texts));
             }
         }
         finally
@@ -412,6 +434,9 @@ public partial class MainWindow : Window
                 if (options.Autostart is { } autostart) Autostart.Set(autostart);
                 if (options.Topmost is { } topmost) SetTopmost(topmost); // answers itself
                 else PostOptions();
+                break;
+            case BridgeMessage.Language language when !_local:
+                SetLanguage(language.Code);
                 break;
             case BridgeMessage.Retry when _local:
                 _ = ConnectAsync(restart: false);

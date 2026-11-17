@@ -45,6 +45,8 @@ public class ShellSettingsTests : IDisposable
     [InlineData("{\"distro\":\"\"}")]
     [InlineData("{\"distro\":5}")]
     [InlineData("{\"repoPath\":\"relative/path\"}")]
+    [InlineData("{\"language\":\"fr\"}")]
+    [InlineData("{\"language\":1}")]
     [InlineData("[1,2]")]
     public void Settings_wrong_values_fall_back_per_key(string json) =>
         Assert.Equal(ShellSettings.Defaults, ShellSettings.Load(Write(json)));
@@ -58,9 +60,16 @@ public class ShellSettingsTests : IDisposable
     }
 
     [Fact]
+    public void Language_defaults_to_English_and_is_read()
+    {
+        Assert.Equal("en", ShellSettings.Defaults.Language);
+        Assert.Equal("de", ShellSettings.Load(Write("{\"language\":\"de\"}")).Language);
+    }
+
+    [Fact]
     public void Save_then_Load_gives_the_same_settings()
     {
-        var s = new ShellSettings("Debian", "/srv/tower", 5000, false);
+        var s = new ShellSettings("Debian", "/srv/tower", 5000, false, "de");
         var path = Path.Combine(_dir, "sub", "settings.json");
         s.Save(path);
         Assert.Equal(s, ShellSettings.Load(path));

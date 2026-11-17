@@ -25,6 +25,9 @@ public abstract record BridgeMessage
     /// <summary>The error page's button: try to reach the daemon again.</summary>
     public sealed record Retry : BridgeMessage;
 
+    /// <summary>The language the page shows; the shell uses it for its own texts.</summary>
+    public sealed record Language(string Code) : BridgeMessage;
+
     /// <summary>The settings panel changed an option; a field that is null was not sent.</summary>
     public sealed record Options(bool? Autostart, bool? Topmost) : BridgeMessage;
 
@@ -52,6 +55,11 @@ public abstract record BridgeMessage
                     if (!TryReadBool(root, "autostart", out var autostart)
                         || !TryReadBool(root, "topmost", out var topmost)) return null;
                     return new Options(autostart, topmost);
+                case "language":
+                    return root.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String
+                        && ShellText.IsKnown(code.GetString())
+                        ? new Language(code.GetString()!)
+                        : null;
                 case "drag": return new Drag();
                 case "hide": return new Hide();
                 case "retry": return new Retry();

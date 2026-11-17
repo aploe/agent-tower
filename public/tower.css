@@ -567,9 +567,9 @@ button {
 @keyframes knob-on { from { transform: translateX(0); } to { transform: translateX(16px); } }
 @keyframes knob-off { from { transform: translateX(16px); } to { transform: translateX(0); } }
 
-.setting.idle { padding: 4px 12px 8px; }
-.setting.idle .reason { padding: 6px 0 0; }
-.setting.idle .hint {
+.choice-setting { padding: 4px 12px 8px; }
+.choice-setting .reason { padding: 6px 0 0; }
+.choice-setting .hint {
   margin-top: 3px;
   font-size: 12px;
   color: var(--text-faint);

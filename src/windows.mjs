@@ -13,6 +13,7 @@
 // while an empty answer means "none alive".
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { say } from './messages.mjs';
 
 export const POWERSHELL = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe';
 /** The desktop app's own session id, as its claude:// handler accepts it (F30). */
@@ -91,7 +92,7 @@ export async function openDesktopSession({ hostSessionId }, deps = { run: promis
   try {
     await deps.run('wslview', [url], { timeout: LINK_TIMEOUT_MS });
   } catch (err) {
-    if (err.code === 'ENOENT') throw new Error('wslview missing (package wslu)');
+    if (err.code === 'ENOENT') throw new Error(say('noWslview'));
     throw err;
   }
   return { url };

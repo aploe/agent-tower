@@ -12,6 +12,8 @@ public class BridgeMessageTests
         Assert.IsType<BridgeMessage.Drag>(BridgeMessage.Parse("{\"type\":\"drag\"}"));
         Assert.IsType<BridgeMessage.Hide>(BridgeMessage.Parse("{\"type\":\"hide\"}"));
         Assert.IsType<BridgeMessage.Retry>(BridgeMessage.Parse("{\"type\":\"retry\"}"));
+        Assert.Equal(new BridgeMessage.Language("de"), BridgeMessage.Parse("{\"type\":\"language\",\"code\":\"de\"}"));
+        Assert.Equal(new BridgeMessage.Language("en"), BridgeMessage.Parse("{\"type\":\"language\",\"code\":\"en\"}"));
     }
 
     [Fact]
@@ -40,5 +42,8 @@ public class BridgeMessageTests
     [InlineData("{\"type\":\"options\",\"autostart\":\"yes\"}")]
     [InlineData("{\"type\":\"options\",\"topmost\":1}")]
     [InlineData("{\"type\":\"options\",\"autostart\":null}")]
+    [InlineData("{\"type\":\"language\"}")]
+    [InlineData("{\"type\":\"language\",\"code\":\"fr\"}")]
+    [InlineData("{\"type\":\"language\",\"code\":1}")]
     public void Parse_rejects(string json) => Assert.Null(BridgeMessage.Parse(json));
 }

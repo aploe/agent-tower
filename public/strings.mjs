@@ -1,6 +1,8 @@
-// Every UI string of the widget, in English (German until 2026-11-17); nothing else in
-// public/ holds UI text.
-export const S = {
+// Every UI string of the widget, per language; nothing else in public/ holds UI text.
+// S always holds the current language: modules read S.x while they render, so a switch
+// takes effect with the next render.
+
+const EN = {
   title: 'Agent Tower',
   empty: 'No running sessions',
   offline: 'Daemon not reachable',
@@ -40,5 +42,61 @@ export const S = {
   topmost: 'Always on top',
   idleAfter: 'Idle after',
   idleAfterHint: 'Finished sessions then shrink to a slim row.',
+  language: 'Language',
   notSaved: 'Not saved',
 };
+
+const DE = {
+  title: 'Agent Tower',
+  empty: 'Keine laufenden Sessions',
+  offline: 'Dienst nicht erreichbar',
+  unreadable: (side) => `${side}-Sessions gerade nicht lesbar`,
+  unreadableBoth: 'WSL- und Windows-Sessions gerade nicht lesbar',
+  openInVsCode: 'In VS Code öffnen',
+  openInDesktop: 'In der Claude-App öffnen',
+  terminal: 'Terminal',
+  unknown: '—',
+  now: 'jetzt',
+
+  working: 'arbeitet',
+  waiting: 'fertig',
+  idle: 'ruht',
+  askPermission: 'braucht Freigabe',
+  askPermissionSub: 'Subagent braucht Freigabe',
+  askQuestion: 'stellt eine Frage',
+  askPlan: 'wartet auf Plan-Freigabe',
+  askUncertain: 'fragt vermutlich',
+
+  hidden: (n) => `${n} ausgeblendet`,
+  asking: (n) => (n === 1 ? `${n} fragt` : `${n} fragen`),
+  collapse: 'Einklappen',
+  expand: 'Ausklappen',
+  hide: 'Ausblenden',
+  close: 'Schließen',
+  dismiss: 'Ausblenden',
+  restore: 'Wieder zeigen',
+  back: 'Zurück',
+  noSteps: 'Noch keine Schritte',
+
+  settings: 'Einstellungen',
+  autostart: 'Mit Windows starten',
+  topmost: 'Immer im Vordergrund',
+  idleAfter: 'Session ruht nach',
+  idleAfterHint: 'Fertige Sessions rutschen danach in die schmale Zeile.',
+  language: 'Sprache',
+  notSaved: 'Nicht gespeichert',
+};
+
+export const TABLES = { en: EN, de: DE };
+export const LANGUAGES = Object.keys(TABLES);
+/** Each language under its own name, the same in every table. */
+export const LANGUAGE_NAMES = { en: 'English', de: 'Deutsch' };
+
+export const S = { ...EN };
+
+/** Switches S to `code`. Returns false (and changes nothing) for an unknown code. */
+export function setLanguage(code) {
+  if (!Object.hasOwn(TABLES, code)) return false;
+  Object.assign(S, TABLES[code]);
+  return true;
+}

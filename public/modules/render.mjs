@@ -1,6 +1,6 @@
 // DOM for the widget. Everything is built with createElement and text nodes; session text
 // never passes through innerHTML (project rule). Icons and the figure are fixed SVG shapes.
-import { S } from '../strings.mjs';
+import { LANGUAGE_NAMES, S } from '../strings.mjs';
 import { duration, relTime, stateLine, stateMark, thirdLine, unreadable } from './format.mjs';
 import { hueIndex } from './figure.mjs';
 
@@ -315,9 +315,29 @@ function switchRow(label, key, value, reason, handlers, slide) {
   return h('div', { class: 'setting' }, row, reason ? h('div', { class: 'reason' }, reason) : null);
 }
 
+/** A label, an optional hint and one chip per choice. value null: not known yet, all chips disabled. */
+function choiceRow(cls, label, hint, { value, choices }, labelOf, pick, reason) {
+  const known = value !== null && value !== undefined;
+  return h('div', { class: `setting choice-setting ${cls}` },
+    h('div', { class: 'row-label' }, label),
+    hint ? h('div', { class: 'hint' }, hint) : null,
+    h('div', { class: 'choices' }, ...choices.map((choice) => {
+      const chosen = choice === value;
+      const btn = h('button', {
+        class: 'choice' + (chosen ? ' is-on' : ''),
+        on: { click: () => known && !chosen && pick(choice) },
+      }, labelOf(choice));
+      btn.setAttribute('aria-pressed', String(chosen));
+      btn.disabled = !known;
+      return btn;
+    })),
+    reason ? h('div', { class: 'reason' }, reason) : null);
+}
+
 /**
  * The third view. model = { shell: null | { autostart, topmost }, idle: { value, choices },
- * reasons, slide } (values null while unknown; slide: { key, to } animates that switch once). shell: null hides the switches (a plain browser).
+ * language: { value, choices }, reasons, slide } (values null while unknown; slide: { key, to }
+ * animates that switch once). shell: null hides the switches (a plain browser).
  */
 export function renderSettings(root, model, handlers, ui) {
   root.append(h('header', { class: 'detail-header' },
@@ -329,25 +349,13 @@ export function renderSettings(root, model, handlers, ui) {
   append(root, [banner(ui)]);
   if (ui.collapsed) return;
 
-  const { shell, idle, reasons } = model;
-  const known = typeof idle.value === 'number';
-  const idleReason = reasons.get('idle');
+  const { shell, reasons } = model;
   root.append(h('section', { class: 'settings-card' + stale(ui) },
     shell ? switchRow(S.autostart, 'autostart', shell.autostart, reasons.get('autostart'), handlers, model.slide) : null,
     shell ? switchRow(S.topmost, 'topmost', shell.topmost, reasons.get('topmost'), handlers, model.slide) : null,
     shell ? h('div', { class: 'divider' }) : null,
-    h('div', { class: 'setting idle' },
-      h('div', { class: 'row-label' }, S.idleAfter),
-      h('div', { class: 'hint' }, S.idleAfterHint),
-      h('div', { class: 'choices' }, ...idle.choices.map((minutes) => {
-        const chosen = minutes === idle.value;
-        const btn = h('button', {
-          class: 'choice' + (chosen ? ' is-on' : ''),
-          on: { click: () => known && !chosen && handlers.setIdle(minutes) },
-        }, duration(minutes));
-        btn.setAttribute('aria-pressed', String(chosen));
-        btn.disabled = !known;
-        return btn;
-      })),
-      idleReason ? h('div', { class: 'reason' }, idleReason) : null)));
+    choiceRow('idle', S.idleAfter, S.idleAfterHint, model.idle, duration, handlers.setIdle, reasons.get('idle')),
+    h('div', { class: 'divider' }),
+    choiceRow('language', S.language, null, model.language, (code) => LANGUAGE_NAMES[code] ?? code,
+      handlers.setLanguage, reasons.get('language'))));
 }

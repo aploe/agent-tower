@@ -35,9 +35,11 @@ public partial class App : Application
             topmostOn: settings.Topmost,
             setTopmost: _window.SetTopmost,
             restartDaemon: _window.RestartDaemon,
-            quit: Quit);
+            quit: Quit,
+            text: ShellText.For(settings.Language));
         _window.AttentionChanged += _tray.SetAttention;
         _window.TopmostChanged += _tray.SetTopmost;
+        _window.TextChanged += _tray.SetText;
         _window.Show();
     }
 

@@ -32,6 +32,7 @@ import { readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, join, win32 } from 'node:path';
 import { promisify } from 'node:util';
+import { say } from './messages.mjs';
 
 const execFileP = promisify(execFile);
 
@@ -54,7 +55,7 @@ async function findCli(cfg) {
   try {
     entries = await readdir(base);
   } catch {
-    throw new Error(`No VS Code server under ${base}; is VS Code running with the WSL remote?`);
+    throw new Error(say('noVsCodeServer', { base }));
   }
   const found = [];
   for (const e of entries) {
@@ -65,7 +66,7 @@ async function findCli(cfg) {
       // folder without remote-cli (leftover of an old version): skip silently
     }
   }
-  if (!found.length) throw new Error(`No remote-cli under ${base}/*/bin/remote-cli/code`);
+  if (!found.length) throw new Error(say('noRemoteCli', { base }));
   found.sort((a, b) => b.at - a.at);
   return found[0].cli;
 }
@@ -147,7 +148,7 @@ async function findWindows(deps, cli) {
       return { socket, list };
     }
   }
-  throw new Error('VS Code not reachable');
+  throw new Error(say('vscodeUnreachable'));
 }
 
 /* All windows whose title matches this folder.
@@ -206,20 +207,17 @@ function pickWindow(path, distro, list, knownPaths, host = 'wsl', home = null) {
     if (host !== 'windows' || !home || !sameWindowsPath(path, home)) return null;
     const free = folderlessWindows(list, knownPaths.filter((k) => !sameWindowsPath(k, home)));
     if (free.length > 1) {
-      throw new Error(`${free.length} windows without a folder; the title does not say which one`);
+      throw new Error(say('windowsWithoutFolder', { n: free.length }));
     }
     return free[0] ?? null;
   }
   const name = host === 'windows' ? win32.basename(path) : basename(path);
   if (hits.length > 1) {
-    throw new Error(`${hits.length} windows show "${name}"; the title does not say which one`);
+    throw new Error(say('windowsShowName', { n: hits.length, name }));
   }
   const twins = twinsOf(path, knownPaths, host);
   if (twins.length) {
-    throw new Error(
-      `The window title only says "${name}", which also fits ${twins.join(', ')}` +
-        '; please open the window yourself',
-    );
+    throw new Error(say('twinFolders', { name, twins: twins.join(', ') }));
   }
   return hits[0];
 }
@@ -228,14 +226,14 @@ function pickWindow(path, distro, list, knownPaths, host = 'wsl', home = null) {
  * new window. Returns { window, title }; every failure throws with a German reason. */
 async function openSession({ cwd, sessionId, distro, knownCwds = [], cfg, host = 'wsl', home = null }, deps = defaultDeps) {
   if (!UUID.test(sessionId ?? '')) throw new Error('Not a valid session id');
-  if (host !== 'windows' && !distro) throw new Error('No WSL distro known (config.wslDistro)');
+  if (host !== 'windows' && !distro) throw new Error(say('noDistro'));
 
   const cli = await deps.findCli(cfg);
   const { socket, list } = await findWindows(deps, cli);
 
   // Check first, then act: with an ambiguous or missing title nothing may happen.
   const win = pickWindow(cwd, distro, list, knownCwds, host, home);
-  if (!win) throw new Error('Window not found: no VS Code window has the folder open');
+  if (!win) throw new Error(say('windowNotFound'));
 
   // Without a switch: focuses the existing window (exactly one matches, so no new one opens).
   // On Windows the link alone brings the window up (F32), and the remote CLI would open the
@@ -248,7 +246,7 @@ async function openSession({ cwd, sessionId, distro, knownCwds = [], cfg, host =
   try {
     await deps.run('wslview', [uri], { timeout: CLI_TIMEOUT_MS });
   } catch (err) {
-    if (err.code === 'ENOENT') throw new Error('wslview missing (package wslu)');
+    if (err.code === 'ENOENT') throw new Error(say('noWslview'));
     throw err;
   }
 

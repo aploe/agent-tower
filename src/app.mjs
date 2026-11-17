@@ -9,7 +9,8 @@ import { openSession, UUID } from './vscode.mjs';
 import { openDesktopSession, windowsPathOf, windowsStartTimes } from './windows.mjs';
 import { groupOf, updateDismissed } from './dismissed.mjs';
 import { checkHost, checkPost, checkPostOrigin, checkPostRequest } from './guards.mjs';
-import { KEYS, defaultsOf, loadSettings, updateSettings, validatePatch } from './settings.mjs';
+import { defaultsOf, limitsOf, loadSettings, updateSettings, validatePatch } from './settings.mjs';
+import { say, setLanguage as setMessageLanguage } from './messages.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_PUBLIC = path.join(ROOT, 'public');
@@ -60,11 +61,18 @@ export function createApp(cfg, deps = {}) {
   const defaults = defaultsOf(cfg);
   let overrides = {};
   let effective = cfg;
-  const settingsReady = loadSettings(cfg).then((o) => { overrides = o; effective = { ...cfg, ...o }; });
+  // The daemon's own refusals follow the language setting too.
+  const useOverrides = (o) => {
+    overrides = o;
+    effective = { ...cfg, ...o };
+    setMessageLanguage({ ...defaults, ...o }.language);
+  };
+  setMessageLanguage(defaults.language);
+  const settingsReady = loadSettings(cfg).then(useOverrides);
   const settingsBody = () => ({
     values: { ...defaults, ...overrides },
     defaults,
-    limits: Object.fromEntries(Object.entries(KEYS).map(([k, v]) => [k, { min: v.min, max: v.max }])),
+    limits: limitsOf(),
   });
 
   // --- snapshot cache ---------------------------------------------------------------
@@ -197,8 +205,7 @@ export function createApp(cfg, deps = {}) {
     }
     const verdict = validatePatch(body);
     if (!verdict.ok) return json(res, 400, { ok: false, reason: verdict.reason });
-    overrides = await updateSettings(cfg, defaults, verdict.patch);
-    effective = { ...cfg, ...overrides };
+    useOverrides(await updateSettings(cfg, defaults, verdict.patch));
     invalidate(); // the event stream picks up the new snapshot on its next tick
     return json(res, 200, settingsBody());
   }
@@ -223,7 +230,7 @@ export function createApp(cfg, deps = {}) {
       // Server-side: a live CLI session must never be "restored" in the extension (it would
       // start twice), and a row without a proven jump gets none. The page hides the arrow, but
       // the guard belongs here.
-      const noJump = { ok: false, reason: 'This session cannot be opened from here' };
+      const noJump = { ok: false, reason: say('noJump') };
       if (!session.canOpen) return json(res, 200, noJump);
       try {
         if (session.opensIn === 'desktop') {
@@ -239,7 +246,7 @@ export function createApp(cfg, deps = {}) {
           ? await d.loadRegistry(cfg, { claudeDir: cfg.windowsClaudeDir, origin: 'windows', startTimes: windowsStartTimes })
           : await d.loadRegistry(cfg);
         // Without the registry the twin check (two folders, same name) cannot run: refuse.
-        if (!registry) return json(res, 200, { ok: false, reason: 'Registry not readable' });
+        if (!registry) return json(res, 200, { ok: false, reason: say('registryUnreadable') });
         await d.openSession({
           cwd: session.cwd,
           sessionId: id,
@@ -299,7 +306,7 @@ export function createApp(cfg, deps = {}) {
           if (id === null) return json(res, 400, { ok: false, reason: 'Not a valid session id' });
           const snap = await getState();
           if (!UUID.test(id) || !snap.sessions.some((s) => s.id === id)) {
-            return json(res, 404, { ok: false, reason: 'Unknown session' });
+            return json(res, 404, { ok: false, reason: say('unknownSession') });
           }
           return json(res, 200, await d.stepsFor(effective, id));
         }

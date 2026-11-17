@@ -1,20 +1,23 @@
 // Widget page. Live mode follows the daemon's event stream. Fixture mode (?fixture=<name>)
 // renders public/fixtures/<name>.json with its generatedAt as "now", so screenshots stay the
-// same over time; its actions do nothing.
+// same over time; its actions do nothing. In fixture mode ?lang=de shows the page in German
+// (live mode follows the daemon's setting).
 import { renderDetail, renderHeader, renderList, renderSettings } from './modules/render.mjs';
 import { assignHues } from './modules/figure.mjs';
 import { getSettings, getSteps, post, setSettings, subscribe } from './modules/api.mjs';
 import { createBridge } from './modules/bridge.mjs';
-import { S } from './strings.mjs';
+import { LANGUAGES, S, setLanguage } from './strings.mjs';
 
 const TIMES_MS = 10000; // relative times move on without a new snapshot
 const STEPS_MS = 2000; // the open detail view asks for its steps this often
 const REASON_MS = 4000; // how long a refusal stays in its row
 const ANSWER_MS = 2000; // a setting without an answer by then goes back
 const HOLD_MS = 1500; // longest time a held pointer keeps the page from rebuilding
+const LANGUAGE_WAIT_MS = 1500; // the first render waits this long at most for the language setting
 
 const params = new URLSearchParams(location.search);
 const fixture = params.get('fixture');
+const langParam = params.get('lang');
 const app = document.getElementById('app');
 const bridge = createBridge();
 
@@ -30,10 +33,9 @@ const ui = {
 };
 const CHIPS = [30, 60, 120, 240, 480]; // minutes; a value from a config file joins them
 // What the settings view shows. null: not known (the control is disabled, no state).
-const settings = { autostart: null, topmost: null, idle: null };
+const settings = { autostart: null, topmost: null, idle: null, language: null };
 const pendingOption = new Map(); // key → { want, prev, timer } while the shell has not answered
 let slide = null; // { key, to }: the switch to animate in the next render only (a render rebuilds the DOM, so a CSS transition cannot run)
-let settingsAsk = 0; // numbers the daemon requests; only the newest answer counts
 let snapshot = { counts: { total: 0, prompt: 0, dismissed: 0 }, sessions: [] };
 let steps = null; // null: not loaded (the detail view shows no step list at all)
 let stepsOf = null; // the session id `steps` belongs to
@@ -73,6 +75,7 @@ function render() {
     const model = {
       shell: bridge.inShell || fixture ? { autostart: settings.autostart, topmost: settings.topmost } : null,
       idle: { value: idleValue, choices },
+      language: { value: settings.language, choices: LANGUAGES },
       reasons: ui.reasons,
       slide: slideNow,
     };
@@ -231,47 +234,63 @@ bridge.onOptions((answer) => {
   scheduleRender();
 });
 
-async function changeIdle(minutes) {
+// The daemon's settings in the view: field in `settings` → key and value type in the daemon.
+const DAEMON = { idle: { key: 'idleAfterMinutes', type: 'number' }, language: { key: 'language', type: 'string' } };
+const asks = { idle: 0, language: 0 }; // per field: only the answer to the newest request counts
+
+/** Shows the page in `code` and tells the shell; an unknown code changes nothing. */
+function useLanguage(code) {
+  if (!setLanguage(code)) return;
+  document.documentElement.lang = code;
+  bridge.language(code);
+}
+
+function applySetting(field, value) {
+  settings[field] = value;
+  if (field === 'language' && value !== null) useLanguage(value);
+}
+
+async function changeSetting(field, value) {
   if (fixture) return;
-  const prev = settings.idle;
-  const ask = ++settingsAsk;
-  settings.idle = minutes;
+  const { key, type } = DAEMON[field];
+  const prev = settings[field];
+  const ask = ++asks[field];
+  applySetting(field, value);
   scheduleRender();
-  const request = setSettings({ idleAfterMinutes: minutes });
+  const request = setSettings({ [key]: value });
   let timer;
   const timeout = new Promise((resolve) => { timer = setTimeout(resolve, ANSWER_MS, null); });
   const answer = await Promise.race([request, timeout]);
   clearTimeout(timer);
-  if (ask !== settingsAsk) return; // a later pick replaced this one
+  if (ask !== asks[field]) return; // a later pick replaced this one
   if (answer === null) {
     // Too slow: show the old value and say so, but the daemon may still apply the change.
-    settings.idle = prev;
-    showReason('idle', S.notSaved);
+    applySetting(field, prev);
+    showReason(field, S.notSaved);
     const late = await request;
-    const saved = late?.values?.idleAfterMinutes;
-    if (ask === settingsAsk && saved === minutes) {
-      settings.idle = saved;
-      clearReason('idle');
+    const saved = late?.values?.[key];
+    if (ask === asks[field] && saved === value) {
+      applySetting(field, saved);
+      clearReason(field);
     }
     return;
   }
-  const got = answer.values?.idleAfterMinutes;
-  if (got === minutes) return;
-  settings.idle = typeof got === 'number' ? got : prev;
-  showReason('idle', answer.reason ?? S.notSaved);
+  const got = answer.values?.[key];
+  if (got === value) return;
+  applySetting(field, typeof got === type ? got : prev);
+  showReason(field, answer.reason ?? S.notSaved);
 }
 
-/** On opening: ask the shell and the daemon. An old shell or daemon never answers; the controls stay disabled. */
+/** At start and on opening: ask the shell and the daemon. An old shell or daemon never answers; the controls stay disabled. */
 async function loadSettings() {
   bridge.options();
-  const ask = ++settingsAsk;
+  const ask = { idle: ++asks.idle, language: ++asks.language };
   try {
-    const answer = await getSettings();
-    const value = answer?.values?.idleAfterMinutes;
-    if (ask === settingsAsk && typeof value === 'number') {
-      settings.idle = value;
-      scheduleRender();
+    const values = (await getSettings())?.values ?? {};
+    for (const [field, { key, type }] of Object.entries(DAEMON)) {
+      if (ask[field] === asks[field] && typeof values[key] === type) applySetting(field, values[key]);
     }
+    scheduleRender();
   } catch {
     // an older daemon has no settings: the chips stay disabled
   }
@@ -290,7 +309,8 @@ const handlers = {
     scheduleRender();
   },
   setOption: changeOption,
-  setIdle: changeIdle,
+  setIdle: (minutes) => changeSetting('idle', minutes),
+  setLanguage: (code) => changeSetting('language', code),
   select(id) {
     ui.selectedId = id;
     scheduleRender();
@@ -330,12 +350,15 @@ async function startFixture() {
     console.error(err);
   }
   if (ui.settingsOpen) {
-    Object.assign(settings, { autostart: true, topmost: true, idle: 240 }); // fixed values for screenshots
+    // fixed values for screenshots
+    Object.assign(settings, { autostart: true, topmost: true, idle: 240, language: LANGUAGES.includes(langParam) ? langParam : 'en' });
   }
   scheduleRender();
 }
 
-function startLive() {
+async function startLive() {
+  // The language first, so the first render does not show the wrong one for a moment.
+  await Promise.race([loadSettings(), new Promise((resolve) => setTimeout(resolve, LANGUAGE_WAIT_MS))]);
   subscribe(takeSnapshot, (status) => {
     ui.online = status === 'online';
     scheduleRender();
@@ -345,6 +368,9 @@ function startLive() {
   setInterval(refreshSteps, STEPS_MS);
 }
 
-if (fixture) startFixture();
-else startLive();
-if (!fixture && ui.settingsOpen) loadSettings();
+if (fixture) {
+  if (langParam) useLanguage(langParam);
+  startFixture();
+} else {
+  startLive();
+}

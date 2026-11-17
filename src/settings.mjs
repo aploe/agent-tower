@@ -3,18 +3,33 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-export const KEYS = { idleAfterMinutes: { min: 5, max: 1440 } };
+// A key holds either a whole-number range (min, max) or a closed list of values; fallback is
+// used when the config file has no valid value for it.
+export const KEYS = {
+  idleAfterMinutes: { min: 5, max: 1440 },
+  language: { values: ['en', 'de'], fallback: 'en' },
+};
 
 const FILE = 'settings.json';
 let saveCount = 0;
 
 function isValue(key, value) {
-  const { min, max } = KEYS[key];
+  const { min, max, values } = KEYS[key];
+  if (values) return values.includes(value);
   return Number.isInteger(value) && value >= min && value <= max;
 }
 
 export function defaultsOf(cfg) {
-  return Object.fromEntries(Object.keys(KEYS).map((key) => [key, cfg[key]]));
+  return Object.fromEntries(Object.keys(KEYS).map((key) => {
+    const { fallback } = KEYS[key];
+    return [key, fallback !== undefined && !isValue(key, cfg[key]) ? fallback : cfg[key]];
+  }));
+}
+
+/** What the page may send per key: { min, max } or { values }. */
+export function limitsOf() {
+  return Object.fromEntries(Object.entries(KEYS).map(([key, { min, max, values }]) =>
+    [key, values ? { values } : { min, max }]));
 }
 
 /** The valid overrides in the file; anything missing, damaged or foreign is ignored. */
@@ -43,8 +58,10 @@ export function validatePatch(body) {
     if (!Object.hasOwn(KEYS, key)) return { ok: false, reason: `Unknown setting: ${key}` };
     const value = body[key];
     if (value !== null && !isValue(key, value)) {
-      const { min, max } = KEYS[key];
-      return { ok: false, reason: `${key} must be a whole number from ${min} to ${max}` };
+      const { min, max, values } = KEYS[key];
+      return values
+        ? { ok: false, reason: `${key} must be one of ${values.join(', ')}` }
+        : { ok: false, reason: `${key} must be a whole number from ${min} to ${max}` };
     }
     patch[key] = value;
   }

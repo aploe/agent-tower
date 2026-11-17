@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using AgentTower.Logic;
 
 namespace AgentTower;
 
@@ -12,24 +13,33 @@ public sealed class Tray : IDisposable
 {
     private readonly NotifyIcon _icon;
     private readonly ToolStripMenuItem _topmost;
+    private readonly ToolStripMenuItem _showHide;
+    private readonly ToolStripMenuItem _restart;
+    private readonly ToolStripMenuItem _quit;
+    private ShellText _text;
+    private int _asking;
     private bool _settingFromCode; // a check mark set from code must not call back into the window
     private readonly Icon _normal = Draw(attention: false);
     private readonly Icon _attention = Draw(attention: true);
 
-    public Tray(Action toggle, bool topmostOn, Action<bool> setTopmost, Action restartDaemon, Action quit)
+    public Tray(Action toggle, bool topmostOn, Action<bool> setTopmost, Action restartDaemon, Action quit, ShellText text)
     {
-        _topmost = new ToolStripMenuItem("Always on top") { Checked = topmostOn, CheckOnClick = true };
+        _text = text;
+        _topmost = new ToolStripMenuItem(text.Topmost) { Checked = topmostOn, CheckOnClick = true };
         _topmost.CheckedChanged += (_, _) =>
         {
             if (!_settingFromCode) setTopmost(_topmost.Checked);
         };
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add("Show/Hide", null, (_, _) => toggle());
+        _showHide = new ToolStripMenuItem(text.ShowHide, null, (_, _) => toggle());
+        _restart = new ToolStripMenuItem(text.RestartDaemon, null, (_, _) => restartDaemon());
+        _quit = new ToolStripMenuItem(text.Quit, null, (_, _) => quit());
+        menu.Items.Add(_showHide);
         menu.Items.Add(_topmost);
-        menu.Items.Add("Restart daemon", null, (_, _) => restartDaemon());
+        menu.Items.Add(_restart);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Quit", null, (_, _) => quit());
+        menu.Items.Add(_quit);
 
         _icon = new NotifyIcon { Icon = _normal, Text = "Agent Tower", ContextMenuStrip = menu, Visible = true };
         _icon.MouseClick += (_, e) =>
@@ -48,8 +58,20 @@ public sealed class Tray : IDisposable
 
     public void SetAttention(int count)
     {
+        _asking = count;
         _icon.Icon = count > 0 ? _attention : _normal;
-        _icon.Text = count > 0 ? $"Agent Tower · {count} asking" : "Agent Tower";
+        _icon.Text = count > 0 ? $"Agent Tower · {_text.Asking(count)}" : "Agent Tower";
+    }
+
+    /// <summary>The page switched its language: menu and tooltip follow.</summary>
+    public void SetText(ShellText text)
+    {
+        _text = text;
+        _showHide.Text = text.ShowHide;
+        _topmost.Text = text.Topmost;
+        _restart.Text = text.RestartDaemon;
+        _quit.Text = text.Quit;
+        SetAttention(_asking);
     }
 
     public void Dispose()

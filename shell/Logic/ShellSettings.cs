@@ -7,7 +7,7 @@ namespace AgentTower.Logic;
 /// %LOCALAPPDATA%\AgentTower\settings.json. A missing file, a missing key, a wrong value and
 /// invalid JSON fall back to the defaults, key by key: the app must start in any case.
 /// </summary>
-public sealed record ShellSettings(string Distro, string RepoPath, int Port, bool Topmost)
+public sealed record ShellSettings(string Distro, string RepoPath, int Port, bool Topmost, string Language = "en")
 {
     public static ShellSettings Defaults { get; } =
         new("Ubuntu", "/home/aploe/personal-projects/agent-tower", 4188, true);
@@ -24,7 +24,8 @@ public sealed record ShellSettings(string Distro, string RepoPath, int Port, boo
                 // The path is handed to wsl.exe as the program to run: absolute Linux paths only.
                 ReadText(root, "repoPath", s => s.StartsWith('/')) ?? Defaults.RepoPath,
                 ReadPort(root) ?? Defaults.Port,
-                ReadBool(root, "topmost") ?? Defaults.Topmost);
+                ReadBool(root, "topmost") ?? Defaults.Topmost,
+                ReadText(root, "language", ShellText.IsKnown) ?? Defaults.Language);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
         {
@@ -32,7 +33,7 @@ public sealed record ShellSettings(string Distro, string RepoPath, int Port, boo
         }
     }
 
-    /// <summary>Writes the four keys Load reads back; creates the folder if it is missing.</summary>
+    /// <summary>Writes the five keys Load reads back; creates the folder if it is missing.</summary>
     public void Save(string path)
     {
         var dir = Path.GetDirectoryName(path);
@@ -43,6 +44,7 @@ public sealed record ShellSettings(string Distro, string RepoPath, int Port, boo
             ["repoPath"] = RepoPath,
             ["port"] = Port,
             ["topmost"] = Topmost,
+            ["language"] = Language,
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
 

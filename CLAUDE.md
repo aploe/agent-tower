@@ -29,6 +29,7 @@ A small always-on-top Windows window that lists the live Claude Code sessions in
 ## How to work
 
 - **Daemon and data (`src/`)**: test first with `node --test`, then check against real data. Every data bug in Agent Colony came from real data, not from fixtures. `node scripts/check-live.mjs` compares the daemon's session list with `claude agents --json`, the WSL rows with the WSL CLI and the Windows rows with `claude.exe` (Windows sessions: design §11); Windows is reached only through `powershell.exe` and `wslview`, from `src/windows.mjs` and `src/vscode.mjs`; `node src/collect.mjs --explain <session-id-prefix>` shows why a row has its state.
+- **UI text** exists in English (default) and German: the page in `public/strings.mjs`, the daemon's refusals a row can show in `src/messages.mjs`, the shell's tray and own pages in `shell/Logic/ShellText.cs`. A new text goes into both languages; tests check that the tables match. `node scripts/shot.mjs … --fixture <name> --lang de` shows the German page.
 - **Page (`public/`)**: edit, take a screenshot with `node scripts/shot.mjs`, look at the image, commit. A screenshot nobody looked at is not a check. Work in the main session; no subagent and no review per change.
 - **Shell (`shell/`)**: pure logic is unit-tested (`shell.Tests`); window behaviour is checked by starting the app and looking.
 - Flag over-engineering, in code and in process. This is a tool for one person; a mistake costs nothing and is fixed in the next step.

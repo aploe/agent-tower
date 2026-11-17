@@ -1,4 +1,5 @@
 using System.Net;
+using AgentTower.Logic;
 
 namespace AgentTower;
 
@@ -29,22 +30,22 @@ public static class ErrorPage
         """;
 
     /// <summary>Shown after the daemon did not answer for 20 s.</summary>
-    public static string Html(string command) => Page($"""
+    public static string Html(string command, ShellText text) => Page(text, $"""
         <h1>Agent Tower</h1>
-        <p>The daemon in WSL does not answer.</p>
+        <p>{WebUtility.HtmlEncode(text.NoAnswer)}</p>
         <code>{WebUtility.HtmlEncode(command)}</code>
-        <button id="retry" type="button">Try again</button>
+        <button id="retry" type="button">{WebUtility.HtmlEncode(text.TryAgain)}</button>
         """);
 
     /// <summary>Shown while the daemon is being started.</summary>
-    public static string Starting() => Page("""
+    public static string Starting(ShellText text) => Page(text, $"""
         <h1>Agent Tower</h1>
-        <p style="margin: 0">Starting the daemon in WSL …</p>
+        <p style="margin: 0">{WebUtility.HtmlEncode(text.Starting)}</p>
         """);
 
-    private static string Page(string body) => $"""
+    private static string Page(ShellText text, string body) => $"""
         <!doctype html>
-        <html lang="en">
+        <html lang="{text.Code}">
         <head><meta charset="utf-8"><title>Agent Tower</title><style>{Style}</style></head>
         <body>
         {body}
