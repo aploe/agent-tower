@@ -1,7 +1,7 @@
 // DOM for the widget. Everything is built with createElement and text nodes; session text
 // never passes through innerHTML (project rule). Icons and the figure are fixed SVG shapes.
 import { LANGUAGE_NAMES, S } from '../strings.mjs';
-import { duration, relTime, stateLine, stateMark, thirdLine, unreadable } from './format.mjs';
+import { duration, relTime, stateLine, stateMark, stepTip, thirdLine, toolTip, unreadable } from './format.mjs';
 import { hueIndex } from './figure.mjs';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -62,20 +62,22 @@ const TOOL_ICON = {
   Grep: 'search', Glob: 'search', WebFetch: 'globe', WebSearch: 'globe', Agent: 'agent', Task: 'agent',
 };
 
-function stepMark(status) {
+function stepMark(step) {
+  const status = step.status;
+  const tip = stepTip(step);
   const a = { viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': 'true' };
   if (status === 'done') {
-    return h('span', { class: 'mark done' }, s('svg', a,
+    return h('span', { class: 'mark done', tip }, s('svg', a,
       s('circle', { cx: 12, cy: 12, r: 9, fill: 'currentColor' }),
       s('path', { d: 'M8 12.3l2.8 2.7L16.2 9.6', stroke: 'var(--card)', 'stroke-width': 2.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })));
   }
   if (status === 'error') {
-    return h('span', { class: 'mark error' }, s('svg', a,
+    return h('span', { class: 'mark error', tip }, s('svg', a,
       s('circle', { cx: 12, cy: 12, r: 8.2, stroke: 'currentColor', 'stroke-width': 1.8 }),
       s('path', { d: 'M12 7.8v5', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round' }),
       s('circle', { cx: 12, cy: 16.2, r: 1.2, fill: 'currentColor' })));
   }
-  return h('span', { class: 'mark running' }, s('svg', a,
+  return h('span', { class: 'mark running', tip }, s('svg', a,
     s('circle', { cx: 12, cy: 12, r: 8.2, stroke: 'rgb(255 255 255 / 0.15)', 'stroke-width': 2 }),
     s('circle', { cx: 12, cy: 12, r: 8.2, stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-dasharray': '14 38' })));
 }
@@ -288,8 +290,8 @@ export function renderDetail(root, session, stepsAnswer, nowMs, handlers, snapsh
     h('div', { class: 'divider' }),
     steps.length
       ? h('ul', { class: 'steps' }, ...steps.map((st) => h('li', { class: `step is-${st.status}` },
-          stepMark(st.status),
-          h('span', { class: 'tool', tip: st.tool }, icon(TOOL_ICON[st.tool] ?? 'tool')),
+          stepMark(st),
+          h('span', { class: 'tool', tip: toolTip(st.tool) }, icon(TOOL_ICON[st.tool] ?? 'tool')),
           h('span', { class: 'label', tip: st.label }, st.label))))
       : stepsAnswer ? h('div', { class: 'no-steps' }, S.noSteps) : null, // not loaded is not "none"
     terminal

@@ -26,3 +26,10 @@ test('setLanguage switches S for the next render; an unknown code changes nothin
   }
   assert.equal(S.working, 'working');
 });
+
+test('table values that are objects have the same keys in every language', () => {
+  for (const [key, value] of Object.entries(TABLES.en)) {
+    if (typeof value !== 'object') continue;
+    for (const lang of LANGUAGES) assert.deepEqual(Object.keys(TABLES[lang][key]).sort(), Object.keys(value).sort(), `${lang}.${key}`);
+  }
+});

@@ -36,6 +36,17 @@ const EN = {
   back: 'Back',
   noSteps: 'No steps yet',
 
+  // hover texts of a step's marks
+  stepDone: 'Done',
+  stepError: 'Failed or interrupted',
+  stepRunning: 'Running',
+  started: (time) => `started ${time}`,
+  tools: {
+    Bash: 'Shell command', BashOutput: 'Shell output', Read: 'Read file', Edit: 'Edit file', Write: 'Write file',
+    NotebookEdit: 'Edit notebook', Grep: 'Search in files', Glob: 'Find files', WebFetch: 'Fetch web page',
+    WebSearch: 'Web search', Agent: 'Subagent', Task: 'Subagent', Skill: 'Skill', TodoWrite: 'Task list',
+  },
+
   // settings view
   settings: 'Settings',
   autostart: 'Start with Windows',
@@ -77,6 +88,16 @@ const DE = {
   restore: 'Wieder zeigen',
   back: 'Zurück',
   noSteps: 'Noch keine Schritte',
+
+  stepDone: 'Fertig',
+  stepError: 'Fehlgeschlagen oder abgebrochen',
+  stepRunning: 'Läuft',
+  started: (time) => `gestartet ${time}`,
+  tools: {
+    Bash: 'Shell-Befehl', BashOutput: 'Shell-Ausgabe', Read: 'Datei lesen', Edit: 'Datei bearbeiten', Write: 'Datei schreiben',
+    NotebookEdit: 'Notebook bearbeiten', Grep: 'In Dateien suchen', Glob: 'Dateien finden', WebFetch: 'Webseite abrufen',
+    WebSearch: 'Websuche', Agent: 'Subagent', Task: 'Subagent', Skill: 'Skill', TodoWrite: 'Aufgabenliste',
+  },
 
   settings: 'Einstellungen',
   autostart: 'Mit Windows starten',
