@@ -107,7 +107,10 @@ function lastNonEmptyLine(text) {
   return lines.length ? cap(lines[lines.length - 1], 160) : null;
 }
 
-export function buildSteps(calls, limit = 15) {
+/** How many of the latest tool calls the detail view lists (André, 2026-11-17: 30, was 15). */
+export const STEP_LIMIT = 30;
+
+export function buildSteps(calls, limit = STEP_LIMIT) {
   const list = Array.isArray(calls) ? calls : [];
   const steps = list.slice(-limit).map((c) => ({
     tool: c.name,

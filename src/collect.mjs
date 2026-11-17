@@ -7,7 +7,7 @@ import { loadRegistry } from './sources/registry.mjs';
 import { loadColonyHook } from './sources/colonyHook.mjs';
 import { analyzeTranscript, locateTranscript, subagentOpenCalls } from './sources/transcript.mjs';
 import { decideSessionState, wantsSubagents } from './state.mjs';
-import { stepLabel, askSummary, planSummary, questionsOf, buildSteps } from './steps.mjs';
+import { stepLabel, askSummary, planSummary, questionsOf, buildSteps, STEP_LIMIT } from './steps.mjs';
 import { loadSettings } from './settings.mjs';
 import { loadDismissed, updateDismissed, reconcile } from './dismissed.mjs';
 import { DESKTOP_ID, windowsStartTimes } from './windows.mjs';
@@ -202,7 +202,7 @@ export async function stepsFor(cfg, sessionId) {
       if (file) break;
     }
     if (!file) return { steps: [], terminal: null };
-    const info = await analyzeTranscript(file, { minToolCalls: 15 });
+    const info = await analyzeTranscript(file, { minToolCalls: STEP_LIMIT });
     return buildSteps(info.calls);
   } catch {
     return { steps: [], terminal: null };
