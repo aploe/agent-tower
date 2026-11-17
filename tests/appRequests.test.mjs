@@ -91,8 +91,12 @@ async function start({ cfgOverrides = {}, collect } = {}) {
     const row = await rowOf(id);
     return row?.requests?.length === n ? row : null;
   });
-  const post = (p, body) => fetch(base + p, {
-    method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: JSON.stringify(body),
+  /** A POST as the page sends it: JSON with the daemon's own origin. `origin: null` leaves the
+   *  header out, `raw` replaces the JSON text. */
+  const post = (p, body, { origin = base, raw } = {}) => fetch(base + p, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(origin ? { origin } : {}) },
+    body: raw ?? JSON.stringify(body),
   });
   const stop = async () => {
     server.closeAllConnections();
@@ -283,4 +287,125 @@ test('the event stream shows a held request by itself', async () => {
     abort.abort();
     await t.stop();
   }
+});
+
+// ---------- answering ----------
+
+const QUESTIONS = { questions: [
+  { question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Red' }, { label: 'Green' }, { label: 'Blue' }] },
+  { question: 'Which sides?', header: 'Sides', multiSelect: true, options: [{ label: 'Rice' }, { label: 'Pasta' }, { label: 'Salad' }] },
+] };
+const ask = () => ({ hook_event_name: 'PermissionRequest', session_id: S1, tool_name: 'AskUserQuestion', tool_input: QUESTIONS });
+const answerPath = (id = S1) => `/api/sessions/${id}/answer`;
+const decisionIn = (answer) => JSON.parse(answer.text).hookSpecificOutput.decision;
+const GONE = { ok: false, reason: 'This request is no longer open' };
+
+/** Holds one call and gives back the call and the id its row shows. */
+async function holdOne(t, payload = bash()) {
+  const call = t.hook(payload);
+  const [{ id }] = (await t.held(1)).requests;
+  return { call, id };
+}
+
+test('allow answers the held hook call byte for byte', async () => {
+  const t = await start();
+  try {
+    const { call, id } = await holdOne(t);
+    const res = await t.post(answerPath(), { requestId: id, behavior: 'allow' });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { ok: true });
+    assert.deepEqual(await within(call, 1000), {
+      status: 200,
+      type: 'application/json',
+      text: '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}',
+    });
+    assert.deepEqual((await t.rowOf(S1)).requests, []);
+    assert.deepEqual(t.lines, ['request: Bash E1 allow after 0 s (session 123e4567)']);
+  } finally { await t.stop(); }
+});
+
+test('deny sends the deny decision', async () => {
+  const t = await start();
+  try {
+    const { DENY } = await import('../src/requests.mjs');
+    const { call, id } = await holdOne(t);
+    assert.deepEqual(await (await t.post(answerPath(), { requestId: id, behavior: 'deny' })).json(), { ok: true });
+    assert.deepEqual(decisionIn(await within(call, 1000)), DENY);
+  } finally { await t.stop(); }
+});
+
+test('a question is answered with the chosen labels', async () => {
+  const t = await start();
+  try {
+    const { call, id } = await holdOne(t, ask());
+    assert.deepEqual(await (await t.post(answerPath(), { requestId: id, behavior: 'allow', choices: [[1], [0, 2]] })).json(), { ok: true });
+    assert.deepEqual(decisionIn(await within(call, 1000)), {
+      behavior: 'allow',
+      updatedInput: { ...QUESTIONS, answers: { 'Which colour?': 'Green', 'Which sides?': 'Rice, Salad' } },
+    });
+  } finally { await t.stop(); }
+});
+
+test('a second answer to the same request is refused and nothing is sent twice', async () => {
+  const t = await start();
+  try {
+    const { call, id } = await holdOne(t);
+    await t.post(answerPath(), { requestId: id, behavior: 'allow' });
+    const again = await t.post(answerPath(), { requestId: id, behavior: 'deny' }); // a second page
+    assert.equal(again.status, 200);
+    assert.deepEqual(await again.json(), GONE);
+    assert.equal(decisionIn(await within(call, 1000)).behavior, 'allow');
+    assert.equal(t.lines.length, 1);
+  } finally { await t.stop(); }
+});
+
+test('refusals keep the request held', async () => {
+  const t = await start();
+  try {
+    const { call, id } = await holdOne(t, ask());
+    const bad = await t.post(answerPath(), { requestId: id, behavior: 'allow', choices: [[9], [0]] });
+    assert.equal(bad.status, 400);
+    assert.deepEqual(await bad.json(), { ok: false, reason: 'Choices incomplete or invalid' });
+    const elsewhere = await t.post(answerPath(S2), { requestId: id, behavior: 'allow', choices: [[1], [0]] });
+    assert.equal(elsewhere.status, 200);
+    assert.deepEqual(await elsewhere.json(), GONE);
+    for (const body of [{}, { requestId: 7 }, null]) {
+      assert.deepEqual(await (await t.post(answerPath(), body)).json(), GONE, JSON.stringify(body));
+    }
+    assert.equal(await within(call, 100), 'pending');
+    assert.equal((await t.rowOf(S1)).requests.length, 1);
+  } finally { await t.stop(); }
+});
+
+test('answer guards: origin, session, body size, JSON', async () => {
+  const t = await start();
+  try {
+    const { call, id } = await holdOne(t);
+    const good = { requestId: id, behavior: 'allow' };
+    assert.equal((await t.post(answerPath(), good, { origin: null })).status, 403);
+    assert.equal((await t.post(answerPath(), good, { origin: 'http://evil.example' })).status, 403);
+    const unknown = await t.post(answerPath(NOBODY), good);
+    assert.equal(unknown.status, 404);
+    assert.deepEqual(await unknown.json(), { ok: false, reason: 'Unknown session' });
+    const big = await t.post(answerPath(), { ...good, pad: 'x'.repeat(5000) });
+    assert.equal(big.status, 413);
+    assert.deepEqual(await big.json(), { ok: false, reason: 'Request too large' });
+    const broken = await t.post(answerPath(), null, { raw: '{nope' });
+    assert.equal(broken.status, 400);
+    assert.deepEqual(await broken.json(), { ok: false, reason: 'Not valid JSON' });
+    assert.equal(await within(call, 100), 'pending'); // none of them answered it
+  } finally { await t.stop(); }
+});
+
+test('the session ended while the page still showed the buttons', async () => {
+  const t = await start();
+  try {
+    const { call, id } = await holdOne(t);
+    delete t.states[S1];
+    assert.deepEqual(await within(call, 2000), NO_DECISION);
+    const late = await t.post(answerPath(), { requestId: id, behavior: 'allow' });
+    assert.equal(late.status, 404);
+    assert.deepEqual(await late.json(), { ok: false, reason: 'Unknown session' });
+    assert.equal((await fetch(`${t.base}/api/health`)).status, 200);
+  } finally { await t.stop(); }
 });

@@ -45,6 +45,8 @@ function decodeId(raw) {
 
 // Settings POST body: a handful of keys; anything bigger is not from the widget.
 const MAX_BODY = 1024;
+// An answer from the page: a request id, allow or deny, a few option indices.
+const MAX_ANSWER_BODY = 4096;
 // A hook call carries the tool's whole input (a Write call: the file). Beyond this it is not
 // read into memory and not offered for answering.
 const MAX_HOOK_BODY = 1024 * 1024;
@@ -303,7 +305,9 @@ export function createApp(cfg, deps = {}) {
   }
 
   async function handlePost(req, res, id, action) {
-    req.resume(); // the body carries nothing we use; never read cwd or anything else from it
+    // Only an answer has a body we use; for the rest it is drained unread (never take cwd or
+    // anything else from it).
+    if (action !== 'answer') req.resume();
     const request = {
       remoteAddress: req.socket.remoteAddress,
       headers: req.headers,
@@ -311,12 +315,32 @@ export function createApp(cfg, deps = {}) {
       port: req.socket.localPort,
     };
     // Everything that needs no snapshot first: a collect error must not turn a 403 into a 500.
+    const refuse = (status, reason) => {
+      req.resume();
+      return json(res, status, { ok: false, reason });
+    };
     const pre = checkPostRequest(request);
-    if (!pre.ok) return json(res, pre.status, { ok: false, reason: pre.reason });
+    if (!pre.ok) return refuse(pre.status, pre.reason);
     const snap = await getState();
     const verdict = checkPost({ ...request, knownIds: new Set(snap.sessions.map((s) => s.id)) });
-    if (!verdict.ok) return json(res, verdict.status, { ok: false, reason: verdict.reason });
+    if (!verdict.ok) return refuse(verdict.status, verdict.reason);
     const session = snap.sessions.find((s) => s.id === id);
+
+    if (action === 'answer') {
+      // The user's click on a held permission request. The store checks that the request is
+      // held for this session and builds the decision; the page only names what was clicked.
+      const text = await readBody(req, MAX_ANSWER_BODY);
+      if (text === null) return json(res, 413, { ok: false, reason: 'Request too large' });
+      let body;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        return json(res, 400, { ok: false, reason: 'Not valid JSON' });
+      }
+      const answered = requests.answer(id, body?.requestId, body);
+      if (!answered.ok) return json(res, answered.status, { ok: false, reason: answered.reason });
+      return json(res, 200, { ok: true });
+    }
 
     if (action === 'open') {
       // Server-side: a live CLI session must never be "restored" in the extension (it would
@@ -408,7 +432,7 @@ export function createApp(cfg, deps = {}) {
       if (req.method === 'POST') {
         if (pathname === '/api/settings') return await handleSettingsPost(req, res);
         if (pathname === '/api/hook/permission-request') return await handleHook(req, res);
-        const m = pathname.match(/^\/api\/sessions\/([^/]+)\/(open|dismiss|restore)$/);
+        const m = pathname.match(/^\/api\/sessions\/([^/]+)\/(open|dismiss|restore|answer)$/);
         if (m) {
           const id = decodeId(m[1]);
           if (id === null) {
