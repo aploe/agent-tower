@@ -1,8 +1,44 @@
 # Agent Tower
 
-Agent Tower is a small Windows window that stays on top and lists the Claude Code sessions running in WSL. It shows which of them wait for an answer or a permission, and the arrow on a row brings that session's VS Code tab to the front. It only reads: it installs no hooks and never ends a session.
+A Claude Code session that waits for your answer does nothing until you look. Agent Tower keeps those sessions in view. It is a small window in the corner of your Windows desktop that lists every running session, puts the ones that need you on top and opens the right VS Code tab with one click.
+
+![Agent Tower: two sessions asking for you at the top of the list, one waiting for permission to push and one with a question about a CSV export; next to it the detail view of a session that runs a test suite](docs/img/hero.png)
+
+*The screenshots show made-up demo sessions. The interface is German for now.*
+
+## Why
+
+Three sessions you can keep in your head. Twelve you can't. One is waiting for permission to push, another asked you a question twenty minutes ago, and two finished long ago without anyone reading what they wrote. Each of them has left a hint somewhere, on a tab in a VS Code window hidden behind the browser.
+
+Meanwhile those agents sit idle, and the work they would do next waits for a single "yes". Agent Tower is about that gap: the minutes between Claude needing you and you knowing it.
+
+## What it does
+
+Sessions that wait for a permission, an answer or a plan approval get a lime frame and move to the top. The header counts them ("2 fragen", two asking) and keeps counting when you fold the window down to that one line. A permission prompt raised by a subagent shows up on its parent's row, because that is where you answer it.
+
+The card tells you what the session wants before you switch: the command it wants to run, or the question with its options. Often that is enough to know whether it takes two seconds or real thought. A click on the row opens the session's latest steps and the last terminal command with its output, and the coloured faces at the top switch between sessions.
+
+The arrow takes you there. For a session in VS Code it brings that window and tab to the front; a session in the Claude desktop app opens in the app. When the target is unclear, for example because no VS Code window shows the session's folder, the row says so instead of guessing.
+
+![The rest of the list: working sessions with their current step, finished ones with a dot that stays lime while unread, older ones as slim lines; next to it the folded header and the settings](docs/img/rows.png)
+
+Everything else stays quiet. A working session shows the step it is on. A finished one in VS Code shows a lime dot until you have read it there, then a grey one. After four hours a finished session shrinks to a single line; the settings offer 30 minutes up to 8 hours. The X hides a row until its state changes. The list updates every second.
+
+## What it leaves alone
+
+Agent Tower reads. It installs no hooks, writes nothing into Claude Code's folders and has no button that ends a session or a process. Its state (hidden rows and your settings) lives in a folder of its own, and the daemon listens on `127.0.0.1` only. Quit it and nothing changes for your sessions; they never knew it was there.
+
+It also does not pretend. A long-running command can look like a permission prompt, so when Agent Tower cannot prove that a session is asking, the row says "fragt vermutlich" (probably asking) behind a dashed frame instead of the lime one. A value it cannot know is shown as a dash, not as a plausible guess.
+
+## Where it runs
+
+Agent Tower is made for one setup: Windows 11 with Claude Code in WSL 2, used through the VS Code extension. Sessions of Claude Code on Windows itself, in VS Code or in the Claude desktop app, appear in the same list. Cloud sessions of the desktop app leave no trace on the machine and are missing. macOS and Linux desktops are not supported.
+
+It shows and points; it does not answer. Allowing, denying and replying still happen in VS Code.
 
 There are two programs. A daemon in WSL (`src/`, Node without packages) reads Claude Code's session registry and transcripts and serves the widget page from `public/` on `http://127.0.0.1:4188`. The Windows shell (`shell/`, WPF with WebView2) shows that page in a frameless window with a tray icon, and starts the daemon when it does not answer.
+
+If you would rather have a map than a list, with the Git state of every repository and a 3D view, look at the playful sibling [Agent Colony](https://github.com/aploe/agent-colony). Agent Tower reuses its session logic and leaves out everything you would have to explore.
 
 ## Requirements
 
@@ -44,7 +80,7 @@ The daemon writes its log to `/tmp/agent-tower.log`, and the page opens in any b
 
 ## Checks
 
-`npm test` runs the daemon's and the page's unit tests. `node scripts/check-live.mjs` compares the daemon's session list with `claude agents --json`, and `node src/collect.mjs --explain <session-id-prefix>` prints why a row has its state. `node scripts/shot.mjs out.png` takes a screenshot of the page; `--fixture all-states` shows every kind of row without live sessions.
+`npm test` runs the daemon's and the page's unit tests. `node scripts/check-live.mjs` compares the daemon's session list with `claude agents --json`, and `node src/collect.mjs --explain <session-id-prefix>` prints why a row has its state. `node scripts/shot.mjs out.png` takes a screenshot of the page; `--fixture all-states` shows every kind of row without live sessions, and `--fixture demo` shows the made-up sessions from the screenshots above.
 
 ## Uninstall
 
