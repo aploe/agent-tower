@@ -445,3 +445,9 @@ if (typeof ResizeObserver === 'function') {
     if (document.body.dataset.ready === '1') scheduleRender();
   }).observe(app);
 }
+// The window is hidden to the tray and shown again without a render. When it comes back it
+// appears under the pointer, so the answer controls rest for a moment, as after any move.
+// (Not on focus: the click that brings the focus is the very click that should count.)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) ui.armAt = performance.now() + ARM_MS;
+});
