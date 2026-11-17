@@ -18,7 +18,7 @@ public class ShellSettingsTests : IDisposable
 
     [Fact]
     public void Defaults_are_the_documented_ones() =>
-        Assert.Equal(new ShellSettings("Ubuntu", "/home/aploe/personal-projects/agent-tower", 4188, true), ShellSettings.Defaults);
+        Assert.Equal(new ShellSettings("Ubuntu", "/home/user/agent-tower", 4188, true), ShellSettings.Defaults);
 
     [Fact]
     public void Settings_missing_file_gives_defaults() =>

@@ -9,8 +9,9 @@ namespace AgentTower.Logic;
 /// </summary>
 public sealed record ShellSettings(string Distro, string RepoPath, int Port, bool Topmost, string Language = "en")
 {
+    // RepoPath is a placeholder: scripts/build-shell.sh writes the real path into settings.json.
     public static ShellSettings Defaults { get; } =
-        new("Ubuntu", "/home/aploe/personal-projects/agent-tower", 4188, true);
+        new("Ubuntu", "/home/user/agent-tower", 4188, true);
 
     public static ShellSettings Load(string path)
     {
