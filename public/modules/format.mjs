@@ -6,6 +6,24 @@ const MIN = 60 * SEC;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
+/** Hover text of a step's tool icon: "Shell command (Bash)"; an unknown tool keeps its bare name. */
+export function toolTip(tool) {
+  if (typeof tool !== 'string' || !tool) return S.unknown;
+  const name = Object.hasOwn(S.tools, tool) ? S.tools[tool] : null;
+  return name ? `${name} (${tool})` : tool;
+}
+
+/** Hover text of a step's status mark: what it means, and the local start time when known.
+ *  "error" also covers calls cut off by a new prompt (sources/transcript.mjs). */
+export function stepTip(step) {
+  const status = step?.status === 'done' ? S.stepDone : step?.status === 'error' ? S.stepError : S.stepRunning;
+  const t = typeof step?.at === 'string' ? Date.parse(step.at) : NaN;
+  if (Number.isNaN(t)) return status;
+  const d = new Date(t);
+  const clock = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${status} · ${S.started(clock)}`;
+}
+
 /** "now", "40 s", "12 min", "6 h", "3 d"; unknown or unparseable → "—". */
 export function relTime(sinceIso, nowMs) {
   if (typeof sinceIso !== 'string') return S.unknown;

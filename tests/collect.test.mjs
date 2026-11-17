@@ -243,15 +243,16 @@ test('explain returns the inputs and the decision for one id prefix; unknown giv
 test('stepsFor returns the last calls and the terminal; an unknown session gives empty steps', async () => {
   const w = await world();
   const lines = [];
-  for (let i = 0; i < 20; i++) {
-    lines.push(use(`c${i}`, 'Bash', { command: `echo ${i}` }, T - (30 - i) * 1000));
-    lines.push(result(`c${i}`, T - (30 - i) * 1000 + 100, `line\nout ${i}`));
+  for (let i = 0; i < 35; i++) {
+    lines.push(use(`c${i}`, 'Bash', { command: `echo ${i}` }, T - (40 - i) * 1000));
+    lines.push(result(`c${i}`, T - (40 - i) * 1000 + 100, `line\nout ${i}`));
   }
   await w.transcript('st1', lines);
   const r = await stepsFor(w.cfg, 'st1');
-  assert.equal(r.steps.length, 15);
-  assert.equal(r.steps.at(-1).label, 'echo 19');
-  assert.deepEqual(r.terminal, { command: 'echo 19', lastLine: 'out 19' });
+  assert.equal(r.steps.length, 30);
+  assert.equal(r.steps[0].label, 'echo 5');
+  assert.equal(r.steps.at(-1).label, 'echo 34');
+  assert.deepEqual(r.terminal, { command: 'echo 34', lastLine: 'out 34' });
   assert.deepEqual(await stepsFor(w.cfg, 'nope'), { steps: [], terminal: null });
 });
 

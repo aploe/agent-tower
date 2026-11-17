@@ -8,6 +8,7 @@ import { assignHues } from './modules/figure.mjs';
 import { answer as sendAnswer, getSettings, getSteps, post, setSettings, subscribe } from './modules/api.mjs';
 import { ARM_MS, layoutSignature, requestsOf, toggleChoice } from './modules/answer.mjs';
 import { createBridge } from './modules/bridge.mjs';
+import { createTooltips } from './modules/tooltip.mjs';
 import { LANGUAGES, S, setLanguage } from './strings.mjs';
 
 const TIMES_MS = 10000; // relative times move on without a new snapshot
@@ -22,6 +23,7 @@ const fixture = params.get('fixture');
 const langParam = params.get('lang');
 const app = document.getElementById('app');
 const bridge = createBridge();
+const tooltips = createTooltips();
 
 const ui = {
   selectedId: params.get('detail'),
@@ -118,6 +120,7 @@ function render() {
     lastLayout = layout;
     ui.armAt = performance.now() + ARM_MS;
   }
+  tooltips.refresh();
   document.body.dataset.ready = '1';
 }
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stepLabel, askSummary, questionsOf, planSummary, buildSteps } from '../src/steps.mjs';
+import { stepLabel, askSummary, questionsOf, planSummary, buildSteps, STEP_LIMIT } from '../src/steps.mjs';
 
 test('stepLabel', () => {
   assert.equal(stepLabel('Bash', { command: 'npm test', description: 'Run the test suite' }), 'Run the test suite');
@@ -62,16 +62,17 @@ function call(i, name, input, extra = {}) {
   return { id: 't' + i, name, input, atMs: 1_000_000 + i, status: 'done', resultText: null, ...extra };
 }
 
-test('buildSteps keeps the last 15 in file order and fills the terminal from the last Bash call', () => {
+test('buildSteps keeps the last 30 in file order and fills the terminal from the last Bash call', () => {
+  assert.equal(STEP_LIMIT, 30);
   const calls = [];
-  for (let i = 0; i < 18; i++) calls.push(call(i, 'Grep', { pattern: 'p' + i }));
-  calls.push(call(18, 'Bash', { command: 'npm test' }, { resultText: 'a\n\nℹ pass 41\n' }));
-  calls.push(call(19, 'Read', { file_path: '/x/y.js' }, { status: 'running', atMs: null }));
+  for (let i = 0; i < 33; i++) calls.push(call(i, 'Grep', { pattern: 'p' + i }));
+  calls.push(call(33, 'Bash', { command: 'npm test' }, { resultText: 'a\n\nℹ pass 41\n' }));
+  calls.push(call(34, 'Read', { file_path: '/x/y.js' }, { status: 'running', atMs: null }));
   const out = buildSteps(calls);
-  assert.equal(out.steps.length, 15);
+  assert.equal(out.steps.length, 30);
   assert.equal(out.steps[0].label, 'p5');
-  assert.deepEqual(out.steps[14], { tool: 'Read', label: 'y.js', status: 'running', at: null });
-  assert.equal(out.steps[13].at, new Date(1_000_018).toISOString());
+  assert.deepEqual(out.steps[29], { tool: 'Read', label: 'y.js', status: 'running', at: null });
+  assert.equal(out.steps[28].at, new Date(1_000_033).toISOString());
   assert.deepEqual(out.terminal, { command: 'npm test', lastLine: 'ℹ pass 41' });
   assert.equal(buildSteps(calls, 3).steps.length, 3);
 });

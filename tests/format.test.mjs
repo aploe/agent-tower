@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { duration, relTime, stateLine, stateMark, thirdLine, unreadable } from '../public/modules/format.mjs';
+import { duration, relTime, stateLine, stateMark, stepTip, thirdLine, toolTip, unreadable } from '../public/modules/format.mjs';
 
 const NOW = Date.parse('2026-11-16T12:00:00Z');
 const ago = (ms) => new Date(NOW - ms).toISOString();
@@ -66,4 +66,19 @@ test('unreadable names the sides the daemon could not read', () => {
   assert.equal(unreadable({ registry: false, windows: false }), 'WSL and Windows sessions not readable right now');
   assert.equal(unreadable(undefined), null); // an older daemon sends no sources
   assert.equal(unreadable({ registry: true, colonyHook: false, vscodeUnread: false }), null); // these only add detail
+});
+
+test('toolTip: a readable name next to the tool, the bare name for unknown tools', () => {
+  assert.equal(toolTip('Bash'), 'Shell command (Bash)');
+  assert.equal(toolTip('Read'), 'Read file (Read)');
+  assert.equal(toolTip('mcp__x__y'), 'mcp__x__y');
+  assert.equal(toolTip(undefined), '—');
+});
+
+test('stepTip: what the mark means and when the step started (local clock)', () => {
+  const at = new Date(2026, 10, 16, 9, 5).toISOString();
+  assert.equal(stepTip({ status: 'done', at }), 'Done · started 09:05');
+  assert.equal(stepTip({ status: 'error', at }), 'Failed or interrupted · started 09:05');
+  assert.equal(stepTip({ status: 'running', at: null }), 'Running');
+  assert.equal(stepTip({ status: 'done', at: 'garbage' }), 'Done');
 });

@@ -3,6 +3,7 @@
 //
 // Usage: node scripts/shot.mjs <out.png> [--fixture <name>] [--detail <sessionId>] [--collapsed] [--settings]
 //                              [--lang de] [--offline] [--width 400] [--height 900] [--eval "<expression>"]
+//                              [--hover "<css selector>"]  (rests the mouse there before the shot)
 // --lang and --offline work with --fixture only; live mode follows the daemon. --offline shows
 // the fixture as the page shows its last list while the daemon is unreachable.
 import { spawn } from 'node:child_process';
@@ -14,7 +15,7 @@ import { findChrome, loadPlaywright } from './lib/browser.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
-  const opts = { out: null, fixture: null, detail: null, collapsed: false, settings: false, lang: null, offline: false, width: 400, height: 900, evalExpr: null };
+  const opts = { out: null, fixture: null, detail: null, collapsed: false, settings: false, lang: null, offline: false, width: 400, height: 900, evalExpr: null, hover: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => {
@@ -30,10 +31,11 @@ function parseArgs(argv) {
     else if (a === '--width') opts.width = Number(next());
     else if (a === '--height') opts.height = Number(next());
     else if (a === '--eval') opts.evalExpr = next();
+    else if (a === '--hover') opts.hover = next();
     else if (!a.startsWith('--') && !opts.out) opts.out = a;
     else throw new Error(`unknown argument: ${a}`);
   }
-  if (!opts.out) throw new Error('usage: node scripts/shot.mjs <out.png> [--fixture <name>] [--detail <id>] [--collapsed] [--settings] [--lang de] [--offline] [--width n] [--height n] [--eval "<expr>"]');
+  if (!opts.out) throw new Error('usage: node scripts/shot.mjs <out.png> [--fixture <name>] [--detail <id>] [--collapsed] [--settings] [--lang de] [--offline] [--width n] [--height n] [--eval "<expr>"] [--hover "<selector>"]');
   return opts;
 }
 
@@ -95,6 +97,10 @@ async function main() {
     await page.goto(url);
     await page.waitForFunction(() => document.body && document.body.dataset.ready === '1', null, { timeout: 15000 });
     if (opts.evalExpr) console.log(await page.evaluate(opts.evalExpr));
+    if (opts.hover) {
+      await page.hover(opts.hover);
+      await page.waitForTimeout(700); // past the tooltip's delay and fade
+    }
     await page.screenshot({ path: outPath });
     console.log(`shot: ${outPath}  (${url})`);
     if (problems.length) console.error(problems.join('\n'));
