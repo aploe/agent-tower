@@ -109,7 +109,8 @@ function waitsForUser(row) {
  * It is called at most once per request. A request ends in exactly one way:
  *
  *   E1  answered in the widget                                   → the decision
- *   E3  its session is no longer in the snapshot                 → no decision
+ *   E3  its session has been missing from the snapshots for
+ *       longer than the grace                                    → no decision
  *   E4  no dialog is open in its session (see waitsForUser) and
  *       the request is older than the grace                      → no decision
  *   E5  answering was switched off                               → no decision
@@ -161,12 +162,21 @@ export function createRequests({ now = Date.now, newId = randomUUID, graceMs = G
     },
 
     reconcile(snapshot) {
+      // The registry could not be read: that says nothing about any session. Unknown is not gone.
+      if (snapshot?.sources?.registry === false) return 0;
       const rows = new Map((snapshot?.sessions ?? []).map((s) => [s.id, s]));
       let ended = 0;
       for (const r of [...held.values()]) {
         const row = rows.get(r.sessionId);
-        if (!row) ended += end(r.id, 'E3');
-        else if (!waitsForUser(row) && now() - r.receivedAt > graceMs) ended += end(r.id, 'E4');
+        if (!row) {
+          // One snapshot without the session can be a torn read of its registry file. Only an
+          // absence that lasts longer than the grace counts as gone.
+          r.missingSince ??= now();
+          if (now() - r.missingSince > graceMs) ended += end(r.id, 'E3');
+          continue;
+        }
+        r.missingSince = null;
+        if (!waitsForUser(row) && now() - r.receivedAt > graceMs) ended += end(r.id, 'E4');
       }
       return ended;
     },

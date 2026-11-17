@@ -140,12 +140,33 @@ test('the refusal for a request that is gone follows the language', async () => 
   }
 });
 
-test('E3 and E4: reconcile ends requests whose session is gone or no longer asks', () => {
+test('E3: a session has to be missing for longer than the grace, and an unreadable registry says nothing', () => {
   const { s, clock, said, hold } = store();
-  const gone = hold();
-  assert.equal(s.reconcile(snap(null)), 1); // E3 at once, whatever its age
-  assert.deepEqual(said.get(gone), [null]);
+  const id = hold(); // received at 1000
+  clock.t = 50000;
+  assert.equal(s.reconcile(snap(null)), 0); // one snapshot without it can be a torn read
+  clock.t = 53000;
+  assert.equal(s.reconcile(snap(null)), 0); // missing for exactly the grace
+  assert.equal(s.reconcile(snap('prompt')), 0); // back again: the absence starts over
+  clock.t = 56001;
+  assert.equal(s.reconcile(snap(null)), 0);
+  clock.t = 59001;
+  assert.equal(s.reconcile(snap(null)), 0);
+  clock.t = 59002;
+  assert.equal(s.reconcile(snap(null)), 1);
+  assert.deepEqual(said.get(id), [null]);
 
+  // The registry could not be read at all: that says nothing about any session.
+  const kept = hold();
+  clock.t = 999999;
+  assert.equal(s.reconcile({ sources: { registry: false }, sessions: [] }), 0);
+  assert.equal(s.reconcile({ sources: { registry: false }, sessions: [] }), 0);
+  assert.deepEqual(said.get(kept), []);
+  assert.equal(s.size, 1);
+});
+
+test('E4: reconcile ends requests whose session no longer asks', () => {
+  const { s, clock, said, hold } = store();
   assert.equal(requests.GRACE_MS, 3000);
   const id = hold(); // received at 1000
   clock.t = 4000;
@@ -230,7 +251,9 @@ test('every ending is logged without any text of the request', () => {
   const c = hold(ask);
   clock.t = 2500;
   s.answer(SID, c, { behavior: 'allow', choices: [[0], [1]] });
-  hold();
+  hold(); // at 2500; its session then goes missing for longer than the grace
+  s.reconcile(snap(null));
+  clock.t = 5501;
   s.reconcile(snap(null));
   hold();
   clock.t = 9000;
@@ -244,8 +267,8 @@ test('every ending is logged without any text of the request', () => {
     { ending: 'E1', behavior: 'allow', tool: 'Bash', heldMs: 500, session },
     { ending: 'E1', behavior: 'deny', tool: 'Bash', heldMs: 0, session },
     { ending: 'E1', behavior: 'allow', tool: 'AskUserQuestion', heldMs: 1000, session },
-    { ending: 'E3', behavior: null, tool: 'Bash', heldMs: 0, session },
-    { ending: 'E4', behavior: null, tool: 'Bash', heldMs: 6500, session },
+    { ending: 'E3', behavior: null, tool: 'Bash', heldMs: 3001, session },
+    { ending: 'E4', behavior: null, tool: 'Bash', heldMs: 3499, session },
     { ending: 'E5', behavior: null, tool: 'Bash', heldMs: 0, session },
     { ending: 'E7', behavior: null, tool: 'Bash', heldMs: 0, session },
     { ending: 'E6', behavior: null, tool: 'Bash', heldMs: 0, session },
