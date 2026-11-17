@@ -44,6 +44,17 @@ function requestGroups(settings) {
   return list;
 }
 
+/** Our hook as it stands in the settings ({ type, url, timeout }), or null when it is not
+ *  installed. Entries of a shape we do not know are passed over. */
+export function ownHook(settings) {
+  for (const group of requestGroups(settings)) {
+    const hooks = isObj(group) && Array.isArray(group.hooks) ? group.hooks : [];
+    const found = hooks.find(isOwnHook);
+    if (found) return found;
+  }
+  return null;
+}
+
 /** The list without our hook. `at` is where the first one stood (-1: there was none). A group
  *  we share with another hook keeps that other hook. */
 function withoutOwn(groups) {

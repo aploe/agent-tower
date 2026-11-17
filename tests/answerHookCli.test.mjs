@@ -168,6 +168,45 @@ test('a symlinked settings file stays a link and keeps its mode', async () => {
   } finally { await t.clean(); }
 });
 
+test('a link to a file that does not exist yet stays a link; install creates the file it points at', async () => {
+  const t = await sandbox(null);
+  try {
+    const real = path.join(t.dir, 'dotfiles-settings.json');
+    await fs.symlink('dotfiles-settings.json', t.file); // relative, and its target is missing
+    const res = await t.run('install');
+    assert.equal(res.code, 0, res.err);
+    assert.equal((await fs.lstat(t.file)).isSymbolicLink(), true);
+    assert.equal(ownHooks(await fs.readFile(real, 'utf8')).length, 1);
+    assert.match((await t.run('status')).out, /Hook:\s+installed/);
+  } finally { await t.clean(); }
+});
+
+test('status copes with entries of an odd shape next to the hook', async () => {
+  const own = { matcher: '*', hooks: [{ type: 'http', url: URL_, timeout: 43200 }] };
+  const t = await sandbox(`${JSON.stringify({ hooks: { PermissionRequest: [null, 'x', { hooks: 'y' }, own] } }, null, 2)}\n`);
+  try {
+    const res = await t.run('status');
+    assert.equal(res.code, 0, res.err);
+    assert.match(res.out, /Hook:\s+installed/);
+    assert.match(res.out, new RegExp(`127\\.0\\.0\\.1:${PORT}`));
+  } finally { await t.clean(); }
+});
+
+test('writeDurable writes with the given mode and, with flag wx, never over an existing file', async () => {
+  const { writeDurable } = await import('../scripts/lib/replaceFile.mjs');
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tower-durable-'));
+  try {
+    const file = path.join(dir, 'copy.json');
+    await writeDurable(file, Buffer.from('first\n'), { mode: 0o600, flag: 'wx' });
+    assert.equal(await fs.readFile(file, 'utf8'), 'first\n');
+    assert.equal((await fs.stat(file)).mode & 0o777, 0o600);
+    await assert.rejects(writeDurable(file, 'second\n', { mode: 0o600, flag: 'wx' }), { code: 'EEXIST' });
+    assert.equal(await fs.readFile(file, 'utf8'), 'first\n');
+    await writeDurable(file, 'third\n', { mode: 0o600 });
+    assert.equal(await fs.readFile(file, 'utf8'), 'third\n');
+  } finally { await fs.rm(dir, { recursive: true, force: true }); }
+});
+
 test('replaceFile refuses when the file changed since it was read, and leaves no temp file', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tower-replace-'));
   try {

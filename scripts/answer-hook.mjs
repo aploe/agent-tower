@@ -16,8 +16,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../src/config.mjs';
-import { HOOK_PATH, hookEntry, planInstall, planUninstall } from './lib/hookPlan.mjs';
-import { readOrNull, replaceFile } from './lib/replaceFile.mjs';
+import { hookEntry, ownHook, planInstall, planUninstall } from './lib/hookPlan.mjs';
+import { readOrNull, replaceFile, writeDurable } from './lib/replaceFile.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const COMMANDS = ['status', 'install', 'uninstall'];
@@ -36,13 +36,18 @@ function parseArgs(argv) {
   return opts;
 }
 
-/** The file a write goes to: a symlink is followed, so the link itself stays a link. */
+/** The file a write goes to: a symlink is followed, so the link itself stays a link. That also
+ *  holds for a link whose target does not exist yet; a plain missing file is its own target. */
 async function resolveTarget(file) {
   try {
     return await fs.realpath(file);
   } catch (err) {
-    if (err.code === 'ENOENT') return file;
-    throw err;
+    if (err.code !== 'ENOENT') throw err;
+  }
+  try {
+    return path.resolve(path.dirname(file), await fs.readlink(file));
+  } catch {
+    return file; // not a link either
   }
 }
 
@@ -65,7 +70,7 @@ async function backup(cfg, bytes) {
   const stamp = `${d.getFullYear()}${two(d.getMonth() + 1)}${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}${two(d.getSeconds())}`
     + `-${String(d.getMilliseconds()).padStart(3, '0')}`;
   const file = path.join(dir, `claude-settings-${stamp}.json`);
-  await fs.writeFile(file, bytes, { mode: 0o600, flag: 'wx' });
+  await writeDurable(file, bytes, { mode: 0o600, flag: 'wx' });
   return file;
 }
 
@@ -90,8 +95,7 @@ async function main() {
   const url = entry.hooks[0].url;
 
   if (opts.command === 'status') {
-    const installed = !planUninstall(settings).changed ? null : (settings.hooks.PermissionRequest
-      .flatMap((group) => group.hooks ?? []).find((hook) => typeof hook?.url === 'string' && hook.url.includes(HOOK_PATH)));
+    const installed = ownHook(settings);
     console.log(`File:    ${file}`);
     if (installed) {
       console.log(`Hook:    installed (${installed.url}, timeout ${installed.timeout ?? 'default'} s)`);
