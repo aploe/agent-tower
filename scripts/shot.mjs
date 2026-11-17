@@ -3,6 +3,7 @@
 //
 // Usage: node scripts/shot.mjs <out.png> [--fixture <name>] [--detail <sessionId>] [--collapsed] [--settings]
 //                              [--lang de] [--width 400] [--height 900] [--eval "<expression>"]
+//                              [--hover "<css selector>"]  (rests the mouse there before the shot)
 // --lang works with --fixture only; live mode follows the daemon's language setting.
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -13,7 +14,7 @@ import { findChrome, loadPlaywright } from './lib/browser.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
-  const opts = { out: null, fixture: null, detail: null, collapsed: false, settings: false, lang: null, width: 400, height: 900, evalExpr: null };
+  const opts = { out: null, fixture: null, detail: null, collapsed: false, settings: false, lang: null, width: 400, height: 900, evalExpr: null, hover: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => {
@@ -28,6 +29,7 @@ function parseArgs(argv) {
     else if (a === '--width') opts.width = Number(next());
     else if (a === '--height') opts.height = Number(next());
     else if (a === '--eval') opts.evalExpr = next();
+    else if (a === '--hover') opts.hover = next();
     else if (!a.startsWith('--') && !opts.out) opts.out = a;
     else throw new Error(`unknown argument: ${a}`);
   }
@@ -92,6 +94,10 @@ async function main() {
     await page.goto(url);
     await page.waitForFunction(() => document.body && document.body.dataset.ready === '1', null, { timeout: 15000 });
     if (opts.evalExpr) console.log(await page.evaluate(opts.evalExpr));
+    if (opts.hover) {
+      await page.hover(opts.hover);
+      await page.waitForTimeout(700); // past the tooltip's delay and fade
+    }
     await page.screenshot({ path: outPath });
     console.log(`shot: ${outPath}  (${url})`);
     if (problems.length) console.error(problems.join('\n'));
